@@ -1,0 +1,10 @@
+{  
+  "description": "Launch or focus the window XXX Based on AppKeys: XXAdds Super+NUM hotkeys for activating application based on Dash. Like in Ubuntu, the Unity hotkeys.\nWorks with keypad and numbers.\n\nSo pressing Super+1 has the same affect as clicking on the first app in dash, Super+2 the same as clicking on the second, etc.\nTo start a new instance of the respective application use Shift+Super+NUM.\n\nUse configuration to disable any option you don't like.", 
+  "name": "Run or raise", 
+  "settings-schema": "org.gnome.shell.extensions.app-keys", 
+  "shell-version": [
+    "3.26.1"
+  ],   
+  "uuid": "run-or-raise@e2rd.cz", 
+  "version": 0.1
+}
