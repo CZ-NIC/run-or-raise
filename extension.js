@@ -4,19 +4,6 @@ const Meta = imports.gi.Meta;
 const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 
-// Import the convenience.js (Used for loading settings schemas)
-const Self = imports.misc.extensionUtils.getCurrentExtension();
-const Convenience = Self.imports.convenience;
-
-// Import config
-const config = Self.imports.config;
-
-
-
-function AppKeys() {
-  this.init();
-}
-
 KeyManager = new Lang.Class({
     Name: 'MyKeyManager',
 
@@ -69,31 +56,57 @@ KeyManager = new Lang.Class({
 
 class Controller {
 
+    
 
   //This is a javascript-closure which will return the event handler
   //for each hotkey with it's id. (id=1 For <Super>+1 etc)
-  jumpapp(shortcut) {    
-    return function() {                
-        var launch = shortcut[1].strip();
-        var wm_class = shortcut[2].strip().toLowerCase();
-        var title = shortcut[3].strip().toLowerCase() ;                                                      
+  jumpapp(shortcut) {
+      function _prepare(s) {
+            if(s.substr(0,1) === "/" && s.slice(-1) === "/")  {
+                return [new RegExp(s.substr(1, s.length-2)), "search"];                
+            }
+            else {
+                return [s, "indexOf"];
+            }
+        }
+      
+    return function() {
         
-    
+        //shortcut = "<Super>3,chromium-browser,,Chromium".split(",");
+        //shortcut = "<Super>4,krusader,,".split(",");
+        //shortcut = "<Super>r,gnome-terminal,Gnome-terminal,".split(",");                
+        shortcut = "<Super><Ctrl><Shift>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/".split(",");
+        function _prepare(s) {
+            if(s.substr(0,1) === "/" && s.slice(-1) === "/")  {
+                return [new RegExp(s.substr(1, s.length-2)), "search"];                
+            }
+            else {
+                return [s, "indexOf"];
+            }
+        }
+
+        
+        var launch = shortcut[1].trim();        
+        var wm_class, wmFn, title, titleFn;                
+        [wm_class, wmFn] = _prepare(shortcut[2].trim());
+        [title, titleFn] = _prepare(shortcut[3].trim());        
         
         let seen = 0;
         for (let w of global.get_window_actors()) {
             var wm = w.get_meta_window();
-            if(wm_class && wm_class == wm.get_wm_class().toLowerCase()) { // seek by class                
-                if(title && wm.get_title().toLowerCase().indexOf(title) < 0)  {                    
-                    continue; // if set, title must match
+            if(wm_class) { // seek by class
+                if(wm.get_wm_class()[wmFn](wm_class) > -1 && (!title || wm.get_title()[titleFn](title) > -1)) {
+                    seen = wm; // wm_class AND if set, title must match
+                    break;                             
+                    }                    
                 }
-                seen = wm;
-                break;
-            } else if(wm.get_title().toLowerCase().indexOf(title|| launch) > -1) { // seek by title                
+            } else if((title ? wm.get_title()[titleFn](title) : wm.get_title().toLowerCase().indexOf(launch.toLowerCase())) > -1) { // seek by title                
                 seen = wm;
                 break;
             }
         } 
+      //  if (seen) {"seen"} else {"not seen"}
+        
         if(seen) {            
             wm.activate(0);   
         } else {
@@ -103,34 +116,34 @@ class Controller {
       }
     }
 
-  enable() {
-    /* FORMAT
-     shortcut, launch, wm_class, title
-      OR
-     shortcut, command
-     */
-    
-    //Shell.get_file_contents_utf8_sync("/home/edvard/edvard/www/run-or-raise@e2rd.cz/shortcuts.conf");
+  enable() {        
     try {
-        let s = Shell.get_file_contents_utf8_sync(confpath);
+        var s = Shell.get_file_contents_utf8_sync(confpath);
     }
-    catch() {
-        log("Run or raise - cant load confpath" + confpath);
-        return;
+    catch(e) {
+        log("Run or raise: can't load confpath" + confpath + ", creating new file from default");                
+        imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
+        try {
+            var s = Shell.get_file_contents_utf8_sync(defaultconfpath); // it seems confpath file is not ready yet, reading defaultconfpath
+        }
+        catch(e) {
+            log("Run or raise: Failed to create default file")
+            return;
+        }        
     }
     this.shortcuts = s.split("\n");         
     let keyManager = new KeyManager();
     
     for(let line of this.shortcuts) {
         try {
-            if(line[0] == "#") {
+            if(line[0] == "#" || line.trim() == "") {
                 continue;   
             }
             let s = line.split(",")
             if(s.length > 2) { // shortcut, launch, wm_class, title            
-                keyManager.listenFor(s[0].strip(), this.jumpapp(s))
+                keyManager.listenFor(s[0].trim(), this.jumpapp(s))
             } else { // shortcut, command
-                keyManager.listenFor(s[0].strip(), function() {imports.misc.util.spawnCommandLine(s[1].strip())})
+                keyManager.listenFor(s[0].trim(), function() {imports.misc.util.spawnCommandLine(s[1].trim())})
             }
         } finally {
             log("Run or raise: can't parse line: " + line)
@@ -155,11 +168,14 @@ class Controller {
 
 };
 
-var app, confpath;
+var app, confpath, defaultconfpath;
 
 // create app keys app
 function init(settings) {            
+    // XXX conf not exist create efault
+    // check file exist
     confpath = settings.path + "/shortcuts.conf";
+    defaultconfpath = settings.path + "/shortcuts.default";
     app = new Controller();
 }
 
