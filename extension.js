@@ -70,22 +70,7 @@ class Controller {
             }
         }
       
-    return function() {
-        
-        //shortcut = "<Super>3,chromium-browser,,Chromium".split(",");
-        //shortcut = "<Super>4,krusader,,".split(",");
-        //shortcut = "<Super>r,gnome-terminal,Gnome-terminal,".split(",");                
-        shortcut = "<Super><Ctrl><Shift>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/".split(",");
-        function _prepare(s) {
-            if(s.substr(0,1) === "/" && s.slice(-1) === "/")  {
-                return [new RegExp(s.substr(1, s.length-2)), "search"];                
-            }
-            else {
-                return [s, "indexOf"];
-            }
-        }
-
-        
+    return function() {                    
         var launch = shortcut[1].trim();        
         var wm_class, wmFn, title, titleFn;                
         [wm_class, wmFn] = _prepare(shortcut[2].trim());
@@ -98,15 +83,15 @@ class Controller {
                 if(wm.get_wm_class()[wmFn](wm_class) > -1 && (!title || wm.get_title()[titleFn](title) > -1)) {
                     seen = wm; // wm_class AND if set, title must match
                     break;                             
-                    }                    
-                }
-            } else if((title ? wm.get_title()[titleFn](title) : wm.get_title().toLowerCase().indexOf(launch.toLowerCase())) > -1) { // seek by title                
+                    }                                
+            } else if( (title && (wm.get_title()[titleFn](title) > -1) ) || // seek by title
+                (!title && ((wm.get_wm_class().toLowerCase().indexOf(launch.toLowerCase()) > -1) || // seek by launch-command in wm_class
+                (wm.get_title().toLowerCase().indexOf(launch.toLowerCase()) > -1))) // seek by launch-command in title
+                ) { 
                 seen = wm;
                 break;
             }
-        } 
-      //  if (seen) {"seen"} else {"not seen"}
-        
+        }               
         if(seen) {            
             wm.activate(0);   
         } else {

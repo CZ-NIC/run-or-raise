@@ -3,10 +3,15 @@
 # The shortcuts may be defined in two ways:
 #
 # 1. Run-or-raise form: shortcut,launch-command,[wm_class],[title]
-#        * wm_class and title are optional
-#        * if none is set, launch-command is compared with lowercased windows titles
+#        * wm_class and title are optional and case sensitive
+#        * if none is set, lowercased launch-command is compared with lowercased windows wm_classes and titles
 #
 # 2. Run only form: shortcut,calculate 
+#
+#
+#
+# How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
+#
 #
 
 
@@ -32,6 +37,7 @@
 
 
 # You may use regular expression in title or wm_class.
+# Just put the regular expression between slashes. 
 # E.g. to jump to pidgin conversation window you may use this line
 # (that means any windows of wm_class Pidgin, not containing the title Buddy List)"
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
