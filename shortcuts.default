@@ -9,16 +9,7 @@
 # 2. Run only form: shortcut,calculate 
 #
 #
-#
-# How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
-#
-#
-
-
-
-
-#
-#=================
+# =================
 # Run or raise form
 # =================
 # 
@@ -28,13 +19,6 @@
 # This line cycles any open gnome-terminal (matched by wm_class = Gnome-terminal) OR if not found, launches new one.
 <Super>r,gnome-terminal,Gnome-terminal,
 
-# =============
-# Run only form
-# =============
-#
-# This line will launch notify-send command.
-<Super>h,notify-send Hello world
-
 
 # You may use regular expression in title or wm_class.
 # Just put the regular expression between slashes. 
@@ -43,5 +27,20 @@
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
 
 
+# Have the mail always at numpad-click.
+<Super>KP_2,chromium-browser --app=https://mail.google.com/mail/u/0/#inbox
+
+
+# =============
+# Run only form
+# =============
+#
+# This line will launch notify-send command.
+<Super>h,notify-send Hello world
+
+
+
+
 # Blank lines are allowed. Line starting with "#" means a comment.
 # Now delete these shortcuts and put here yours.
+# How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)

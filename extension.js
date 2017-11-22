@@ -4,9 +4,9 @@ const Meta = imports.gi.Meta;
 const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 
-KeyManager = new Lang.Class({
-    Name: 'MyKeyManager',
-
+KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
+    Name: 'MyKeyManager',    
+    
     _init: function() {
         this.grabbers = new Map()
 
@@ -20,8 +20,11 @@ KeyManager = new Lang.Class({
     },
 
     listenFor: function(accelerator, callback){
+        
         log('Trying to listen for hot key [accelerator={}]', accelerator)
-        let action = global.display.grab_accelerator(accelerator)
+        let action = global.display.grab_accelerator(accelerator)        
+        log("action:")
+        log(action)
 
         if(action == Meta.KeyBindingAction.NONE) {
             log('Unable to grab accelerator [binding={}]', accelerator)
@@ -29,15 +32,16 @@ KeyManager = new Lang.Class({
             log('Grabbed accelerator [action={}]', action)
             let name = Meta.external_binding_name_for_action(action)
             log('Received binding name for action [name={}, action={}]',
-                name, action)
+                name, action)                        
 
             log('Requesting WM to allow binding [name={}]', name)
             Main.wm.allowKeybinding(name, Shell.ActionMode.ALL)
-
+            
             this.grabbers.set(action, {
                 name: name,
                 accelerator: accelerator,
-                callback: callback
+                callback: callback,
+                action: action
             })
         }
 
@@ -54,9 +58,7 @@ KeyManager = new Lang.Class({
     }
 });
 
-class Controller {
-
-    
+class Controller {    
 
   //This is a javascript-closure which will return the event handler
   //for each hotkey with it's id. (id=1 For <Super>+1 etc)
@@ -117,48 +119,45 @@ class Controller {
         }        
     }
     this.shortcuts = s.split("\n");         
-    let keyManager = new KeyManager();
+    this.keyManager = new KeyManager();
     
     for(let line of this.shortcuts) {
         try {
-            if(line[0] == "#" || line.trim() == "") {
+            if(line[0] == "#" || line.trim() == "") {                
                 continue;   
-            }
-            let s = line.split(",")
+            }            
+            let s = line.split(",")            
             if(s.length > 2) { // shortcut, launch, wm_class, title            
-                keyManager.listenFor(s[0].trim(), this.jumpapp(s))
+                this.keyManager.listenFor(s[0].trim(), this.jumpapp(s))
             } else { // shortcut, command
-                keyManager.listenFor(s[0].trim(), function() {imports.misc.util.spawnCommandLine(s[1].trim())})
-            }
-        } finally {
+                this.keyManager.listenFor(s[0].trim(), function() {imports.misc.util.spawnCommandLine(s[1].trim())})
+            }                            
+            
+        } catch(e) {
             log("Run or raise: can't parse line: " + line)
         }        
     }
   }
 
-  disable() {
-      log("Run or raise - disabling shortcuts havent been implemented. Restart the session.");    
-      /*for(let line of this.shortcuts) {
-        try {
-            if(line[0] == "#") {
-                continue;   
+  disable() {      
+        for (let it of this.keyManager.grabbers) {
+            try {
+                global.display.ungrab_accelerator(it[1].action)
+                Main.wm.allowKeybinding(it[1].name, Shell.ActionMode.NONE)
             }
-            let s = line.split(",")
-            s[0]
-            
+            catch(e) {
+                log("Run or raise: error removing keybinding " + it[1].name)
+                log(e)
+            }                                
+        }            
         }
-        finally {}
-      }*/
-  }
+      
 
 };
 
 var app, confpath, defaultconfpath;
 
-// create app keys app
 function init(settings) {            
-    // XXX conf not exist create efault
-    // check file exist
     confpath = settings.path + "/shortcuts.conf";
     defaultconfpath = settings.path + "/shortcuts.default";
     app = new Controller();
