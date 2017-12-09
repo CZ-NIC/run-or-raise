@@ -1,6 +1,8 @@
 Run-or-raise
 ============
 
+https://extensions.gnome.org/extension/1336/run-or-raise/
+
 About project
 =============
 
@@ -10,6 +12,10 @@ With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use 
 Installation
 ============
 
+* through GNOME3 [extensions](https://extensions.gnome.org/extension/1336/run-or-raise/
+) (official, easy, not always up to date)
+
+OR
 * put this dir to `/home/$USER/.local/share/gnome-shell/extensions`
 * enable in `gnome-shell-extension-prefs` panel
 * in the extension preferences, you may edit `shortcuts.conf` file to use your own shortcuts
