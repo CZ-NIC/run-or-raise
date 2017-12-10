@@ -44,10 +44,10 @@ This line cycles any firefox window (matched by "firefox" in the window title) O
 <Super>f,firefox,,
 ```
 
-This line cycles any open gnome-terminal (matched by `wm_class = Gnome-terminal`) OR if not found, launches a new one.
+This line cycles any open gnome-terminal (matched by `wm_class = gnome-terminal-server`) OR if not found, launches a new one.
 
 ```
-<Super>r,gnome-terminal,Gnome-terminal,
+<Super>r,gnome-terminal,gnome-terminal-server,
 ```
 
 You may use **regular expressions** in title or wm_class. Just put the expression between slashes.   

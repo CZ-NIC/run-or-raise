@@ -16,8 +16,8 @@
 #
 # This line cycles any firefox window (matched by "firefox" in the window title) OR if not found, launches new firefox instance.
 <Super>f,firefox,,
-# This line cycles any open gnome-terminal (matched by wm_class = Gnome-terminal) OR if not found, launches new one.
-<Super>r,gnome-terminal,Gnome-terminal,
+# This line cycles any open gnome-terminal (matched by wm_class = gnome-terminal-server) OR if not found, launches new one.
+<Super>r,gnome-terminal,gnome-terminal-server,
 
 
 # You may use regular expression in title or wm_class.
