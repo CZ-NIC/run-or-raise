@@ -44,11 +44,18 @@ This line cycles any firefox window (matched by "firefox" in the window title) O
 <Super>f,firefox,,
 ```
 
-This line cycles any open gnome-terminal (matched by `wm_class = Gnome-terminal`) OR if not found, launches a new one.
+This line cycles any open gnome-terminal OR if not found, launches a new one.
+
+```
+<Super>r,gnome-terminal,,
+```
+
+If you want to be sure that your browser won't be focused when you're on the page having "gnome-terminal" in the title, you may want to match running application by `wm_class = Gnome-terminal` on Ubuntu 17.10 or by `wm_class = gnome-terminal-server` on Arch... just check yourself by Alt+F2/lg/Windows everytime wm_class is needed.
 
 ```
 <Super>r,gnome-terminal,Gnome-terminal,
 ```
+
 
 You may use **regular expressions** in title or wm_class. Just put the expression between slashes.   
 E.g. to jump to pidgin conversation window you may use this line
@@ -58,6 +65,12 @@ E.g. to jump to pidgin conversation window you may use this line
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
 ```
 
+Another occasion you'd use regulars would be the case when you'd like to have multiple applications on single keystroke. In the following example, shortcut `Super+Ctrl+(Numpad)4` focuses an IDE editor, either NetBeans or PyCharm. Because I'm mainly using NetBeans but for Python language I prefer PyCharm, I was wrong too often till I set single keystroke for both. (However, when no IDE is open, for launching NetBeans I use numpad and for PyCharm the 4 on the 4th row of keyboard.)
+
+```
+<Super><Ctrl>4,/opt/pycharm-community-2017.2.4/bin/pycharm.sh,,/(NetBeans IDE|PyCharm)/
+<Super><Ctrl>KP_4,/opt/netbeans/bin/netbeans,,/(NetBeans IDE|PyCharm)/
+```
 
 ## Run only form
 
@@ -79,3 +92,4 @@ Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
 * How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
+* In the case of segfault, check no conflicting keybind (are present)[https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994], then submit an issue.

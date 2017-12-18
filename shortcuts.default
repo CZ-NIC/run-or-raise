@@ -17,7 +17,7 @@
 # This line cycles any firefox window (matched by "firefox" in the window title) OR if not found, launches new firefox instance.
 <Super>f,firefox,,
 # This line cycles any open gnome-terminal (matched by wm_class = Gnome-terminal on Ubuntu 17.10) OR if not found, launches new one.
-# If you're using Arch, you may want to match by wm_class = gnome-terminal-server
+# If you're using Arch, you may want to match by wm_class = gnome-terminal-server , just check yourself by Alt+F2/lg/Windows
 <Super>r,gnome-terminal,Gnome-terminal,
 
 
