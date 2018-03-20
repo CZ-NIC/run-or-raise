@@ -58,11 +58,14 @@ KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606
     }
 });
 
-class Controller {    
+
+Controller = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
+    Name: 'MyController',    
+    
 
   //This is a javascript-closure which will return the event handler
   //for each hotkey with it's id. (id=1 For <Super>+1 etc)
-  jumpapp(shortcut) {
+    jumpapp: function(shortcut) {
       function _prepare(s) {
             if(s.substr(0,1) === "/" && s.slice(-1) === "/")  {
                 return [new RegExp(s.substr(1, s.length-2)), "search"];                
@@ -101,9 +104,9 @@ class Controller {
         }
         return;
       }
-    }
+    },
 
-  enable() {        
+  enable: function() {        
     try {
         var s = Shell.get_file_contents_utf8_sync(confpath);
     }
@@ -137,9 +140,9 @@ class Controller {
             log("Run or raise: can't parse line: " + line)
         }        
     }
-  }
+  },
 
-  disable() {      
+  disable: function() {      
         for (let it of this.keyManager.grabbers) {
             try {
                 global.display.ungrab_accelerator(it[1].action)
@@ -153,7 +156,7 @@ class Controller {
         }
       
 
-};
+});
 
 var app, confpath, defaultconfpath;
 
