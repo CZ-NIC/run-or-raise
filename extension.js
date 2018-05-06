@@ -3,7 +3,6 @@ const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Lang = imports.lang;
 const Shell = imports.gi.Shell;
-
 KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
     Name: 'MyKeyManager',    
     
@@ -58,14 +57,11 @@ KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606
     }
 });
 
-
-Controller = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
-    Name: 'MyController',    
-    
+class Controller {    
 
   //This is a javascript-closure which will return the event handler
   //for each hotkey with it's id. (id=1 For <Super>+1 etc)
-    jumpapp: function(shortcut) {
+  jumpapp(shortcut) {
       function _prepare(s) {
             if(s.substr(0,1) === "/" && s.slice(-1) === "/")  {
                 return [new RegExp(s.substr(1, s.length-2)), "search"];                
@@ -82,7 +78,8 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
         [title, titleFn] = _prepare(shortcut[3].trim());        
         
         let seen = 0;
-        for (let w of global.get_window_actors()) {
+        const actors = global.get_window_actors();
+        for (let w of actors) {
             var wm = w.get_meta_window();
             if(wm_class) { // seek by class
                 if(wm.get_wm_class()[wmFn](wm_class) > -1 && (!title || wm.get_title()[titleFn](title) > -1)) {
@@ -97,16 +94,24 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
                 break;
             }
         }               
-        if(seen) {            
-            wm.activate(0);   
+        if(seen) {
+            if (!wm.has_focus()) {
+                focusWindow(wm);
+            } else {
+                log('in focus');
+                const lastWindow = global.display.get_tab_list(0, null)[1];
+                if (lastWindow) {
+                    focusWindow(lastWindow);
+                }
+            }
         } else {
             imports.misc.util.spawnCommandLine(launch);
         }
         return;
       }
-    },
+    }
 
-  enable: function() {        
+  enable() {        
     try {
         var s = Shell.get_file_contents_utf8_sync(confpath);
     }
@@ -140,9 +145,9 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
             log("Run or raise: can't parse line: " + line)
         }        
     }
-  },
+  }
 
-  disable: function() {      
+  disable() {      
         for (let it of this.keyManager.grabbers) {
             try {
                 global.display.ungrab_accelerator(it[1].action)
@@ -156,7 +161,7 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
         }
       
 
-});
+};
 
 var app, confpath, defaultconfpath;
 
@@ -172,4 +177,9 @@ function enable(settings) {
 
 function disable() {
   app.disable();
+}
+
+function focusWindow(wm) {
+    wm.get_workspace().activate_with_focus(wm, true);
+    wm.activate(0);
 }
