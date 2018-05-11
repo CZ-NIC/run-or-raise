@@ -60,8 +60,7 @@ KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606
 
 
 Controller = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
-    Name: 'MyController',    
-    
+    Name: 'MyController',
 
   //This is a javascript-closure which will return the event handler
   //for each hotkey with it's id. (id=1 For <Super>+1 etc)
@@ -82,24 +81,41 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
         [title, titleFn] = _prepare(shortcut[3].trim());        
         
         let seen = 0;
-        for (let w of global.get_window_actors()) {
-            var wm = w.get_meta_window();
+
+        let is_conforming = function(wm) {
+            // check if the current window is conforming to the search criteria
             if(wm_class) { // seek by class
-                if(wm.get_wm_class()[wmFn](wm_class) > -1 && (!title || wm.get_title()[titleFn](title) > -1)) {
-                    seen = wm; // wm_class AND if set, title must match
-                    break;                             
-                    }                                
+                // wm_class AND if set, title must match
+                if((wm.get_wm_class()[wmFn](wm_class) > -1 && (!title || wm.get_title()[titleFn](title) > -1))) {
+                    return true;
+                }
             } else if( (title && (wm.get_title()[titleFn](title) > -1) ) || // seek by title
                 (!title && ((wm.get_wm_class().toLowerCase().indexOf(launch.toLowerCase()) > -1) || // seek by launch-command in wm_class
                 (wm.get_title().toLowerCase().indexOf(launch.toLowerCase()) > -1))) // seek by launch-command in title
                 ) { 
-                seen = wm;
-                break;
+                return true;
             }
-        }               
+            return false;
+        };
+
+        if(is_conforming(global.display.get_tab_list(0, null)[0])) {
+            // current window conforms, let's focus the oldest windows of the group
+            var loop = global.display.get_tab_list(0, null).slice(0).reverse();
+        } else {
+            // current window doesn't conform, let's find the youngest conforming one
+            var loop = global.display.get_tab_list(0, null); // Xglobal.get_window_actors()
+        }
+        for (var wm of loop) {
+            if(is_conforming(wm)) {
+                seen = wm;
+                if(!seen.has_focus()) {
+                    break; // there might exist another window having the same parameters
+                }
+            }
+        }
         if(seen) {
-            wm.get_workspace().activate_with_focus(wm, true);
-            wm.activate(0);   
+            seen.get_workspace().activate_with_focus(seen, true);
+            seen.activate(0);
         } else {
             imports.misc.util.spawnCommandLine(launch);
         }
