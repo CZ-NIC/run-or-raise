@@ -97,7 +97,8 @@ Controller = new Lang.Class({ // based on https://superuser.com/questions/471606
                 break;
             }
         }               
-        if(seen) {            
+        if(seen) {
+            wm.get_workspace().activate_with_focus(wm, true);
             wm.activate(0);   
         } else {
             imports.misc.util.spawnCommandLine(launch);
