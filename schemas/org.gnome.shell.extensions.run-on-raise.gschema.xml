@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-shell-extensions">
+  <schema path="/org/gnome/shell/extensions/run-or-raise/" id="org.gnome.shell.extensions.run-or-raise">
+    <key type="b" name="switch-back-when-focused">
+      <default>false</default>
+      <summary>Switch back to previous window when focused</summary>
+      <description>Switch back to previous window when focused</description>
+    </key>
+    <key type="b" name="center-mouse-to-focused-window">
+      <default>false</default>
+      <summary>After focus move mouse to window center</summary>
+      <description>After focus move mouse to window center</description>
+    </key>
+  </schema>
+</schemalist>
