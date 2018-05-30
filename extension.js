@@ -106,12 +106,15 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             return false;
         };
 
-        if(is_conforming(global.display.get_tab_list(0, null)[0])) {
+        var loop;
+        if(global.display.get_tab_list(0, null).length === 0) {
+            loop = [];
+        } else if(is_conforming(global.display.get_tab_list(0, null)[0])) {
             // current window conforms, let's focus the oldest windows of the group
-            var loop = global.display.get_tab_list(0, null).slice(0).reverse();
+            loop = global.display.get_tab_list(0, null).slice(0).reverse();
         } else {
             // current window doesn't conform, let's find the youngest conforming one
-            var loop = global.display.get_tab_list(0, null); // Xglobal.get_window_actors()
+            loop = global.display.get_tab_list(0, null); // Xglobal.get_window_actors()
         }
         for (var wm of loop) {
             if(is_conforming(wm)) {
@@ -122,8 +125,8 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             }
         }
         if(seen) {
-            if (!wm.has_focus()) {
-		log('no focus, go to:' + wm.get_wm_class());
+            if (!seen.has_focus()) {
+                log('no focus, go to:' + seen.get_wm_class());
                 focusWindow(seen);
             } else if (settings.get_boolean('switch-back-when-focused')) {
 		window_monitor = wm.get_monitor();
