@@ -28,7 +28,7 @@ const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/
     listenFor: function(accelerator, callback){
 
         log('Trying to listen for hot key [accelerator={}]', accelerator)
-        let action = global.display.grab_accelerator(accelerator)
+        let action = global.display.grab_accelerator(accelerator, 0)
         log("action:")
         log(action)
 
