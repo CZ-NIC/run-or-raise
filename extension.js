@@ -129,9 +129,9 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 log('no focus, go to:' + seen.get_wm_class());
                 focusWindow(seen);
             } else if (settings.get_boolean('switch-back-when-focused')) {
-		window_monitor = wm.get_monitor();
+		const window_monitor = wm.get_monitor();
                 const window_list = global.display.get_tab_list(0, null).filter(w=>w.get_monitor() === window_monitor && w !== wm);
-		lastWindow = window_list[0];
+		const lastWindow = window_list[0];
                 if (lastWindow) {
 			log('focus, go to:' + lastWindow.get_wm_class());
                     focusWindow(lastWindow);
