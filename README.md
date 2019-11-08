@@ -65,6 +65,12 @@ E.g. to jump to pidgin conversation window you may use this line
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
 ```
 
+To match `Google-chrome` and not `Google-chrome-beta`, help yourself with `$` sign to mark the end of matched text.
+```
+<Super>KP_3,gtk-launch google-chrome.desktop,/Google-chrome$/,
+<Super><Shift>KP_3,gtk-launch google-chrome-beta.desktop,Google-chrome-beta,
+```
+
 Another occasion you'd use regulars would be the case when you'd like to have multiple applications on single keystroke. In the following example, shortcut `Super+Ctrl+(Numpad)4` focuses an IDE editor, either NetBeans or PyCharm. Because I'm mainly using NetBeans but for Python language I prefer PyCharm, I was wrong too often till I set single keystroke for both. (However, when no IDE is open, for launching NetBeans I use numpad and for PyCharm the 4 on the 4th row of keyboard.)
 
 ```
