@@ -3,6 +3,11 @@ Run-or-raise
 
 https://extensions.gnome.org/extension/1336/run-or-raise/
 
+IMPORTANT Upgrade Notice
+======
+Backup your shortcuts.conf when **upgrading**, since GNOME will wipe it. (Since the new version, shortcuts.conf will be saved in `~/.config/run-or-raise/` safely.)
+(This notice will be removed after Ubuntu 20.04 LTS release.)
+
 About project
 =============
 

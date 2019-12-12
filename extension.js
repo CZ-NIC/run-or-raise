@@ -151,6 +151,8 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             var s = Shell.get_file_contents_utf8_sync(confpath);
         } catch (e) {
             log("Run or raise: can't load confpath" + confpath + ", creating new file from default");
+            // imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
+            imports.misc.util.spawnCommandLine("mkdir -p "+ confpath.substr(0, confpath.lastIndexOf("/")));
             imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
             try {
                 var s = Shell.get_file_contents_utf8_sync(defaultconfpath); // it seems confpath file is not ready yet, reading defaultconfpath
@@ -197,10 +199,10 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
 
 });
 
-var app, confpath, defaultconfpath, settings;
+var app, confpath, confdir, defaultconfpath, settings;
 
 function init(options) {
-    confpath = options.path + "/shortcuts.conf";
+    confpath = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
     defaultconfpath = options.path + "/shortcuts.default";
     app = new Controller();
     settings = Convenience.getSettings();
