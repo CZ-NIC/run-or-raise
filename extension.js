@@ -217,6 +217,10 @@ function disable() {
 }
 
 function focusWindow(wm) {
+    if (settings.get_boolean('move-window-to-active-workspace')) {
+        const activeWorkspace = global.workspaceManager.get_active_workspace();
+        wm.change_workspace(activeWorkspace);
+    }
     wm.get_workspace().activate_with_focus(wm, true);
     wm.activate(0);
     if (settings.get_boolean('center-mouse-to-focused-window')) {

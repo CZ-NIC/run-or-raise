@@ -11,5 +11,10 @@
       <summary>After focus move mouse to window center</summary>
       <description>After focus move mouse to window center</description>
     </key>
+    <key type="b" name="move-window-to-active-workspace">
+      <default>false</default>
+      <summary>Move window to current workspace before focusing</summary>
+      <description>If the window is on a different workspace, moves the window to the workspace you're currently viewing.</description>
+    </key>
   </schema>
 </schemalist>
