@@ -6,6 +6,11 @@
       <summary>Switch back to previous window when focused</summary>
       <description>Switch back to previous window when focused</description>
     </key>
+    <key type="b" name="minimize-when-unfocused">
+      <default>false</default>
+      <summary>Minimize when unfocusing</summary>
+      <description>Minimizes your target window when unfocusing.</description>
+    </key>
     <key type="b" name="center-mouse-to-focused-window">
       <default>false</default>
       <summary>After focus move mouse to window center</summary>
