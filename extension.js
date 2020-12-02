@@ -108,15 +108,24 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 return false;
             };
 
+            // Switch windows on active workspace only
+            var active_workspace;
+            const workspace_manager = global.display.get_workspace_manager();
+            if (settings.get_boolean('isolate-workspace')) {
+                active_workspace = workspace_manager.get_active_workspace();
+            } else {
+                active_workspace = null;
+            }
+
             var loop;
-            if (global.display.get_tab_list(0, null).length === 0) {
+            if (global.display.get_tab_list(0, active_workspace).length === 0) {
                 loop = [];
-            } else if (is_conforming(global.display.get_tab_list(0, null)[0])) {
+            } else if (is_conforming(global.display.get_tab_list(0, active_workspace)[0])) {
                 // current window conforms, let's focus the oldest windows of the group
-                loop = global.display.get_tab_list(0, null).slice(0).reverse();
+                loop = global.display.get_tab_list(0, active_workspace).slice(0).reverse();
             } else {
                 // current window doesn't conform, let's find the youngest conforming one
-                loop = global.display.get_tab_list(0, null); // Xglobal.get_window_actors()
+                loop = global.display.get_tab_list(0, active_workspace); // Xglobal.get_window_actors()
             }
             for (var wm of loop) {
                 if (is_conforming(wm)) {
@@ -136,7 +145,7 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                     }
                     if (settings.get_boolean('switch-back-when-focused')) {
                         const window_monitor = wm.get_monitor();
-                        const window_list = global.display.get_tab_list(0, null).filter(w => w.get_monitor() === window_monitor && w !== wm);
+                        const window_list = global.display.get_tab_list(0, active_workspace).filter(w => w.get_monitor() === window_monitor && w !== wm);
                         const lastWindow = window_list[0];
                         if (lastWindow) {
                             log('focus, go to:' + lastWindow.get_wm_class());

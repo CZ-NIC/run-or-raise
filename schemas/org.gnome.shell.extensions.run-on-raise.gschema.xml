@@ -21,5 +21,10 @@
       <summary>Move window to current workspace before focusing</summary>
       <description>If the window is on a different workspace, moves the window to the workspace you're currently viewing.</description>
     </key>
+    <key type="b" name="isolate-workspace">
+      <default>false</default>
+      <summary>Switch windows on active workspace only</summary>
+      <description>Switch windows on active workspace only</description>
+    </key>
   </schema>
 </schemalist>
