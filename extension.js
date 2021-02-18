@@ -84,9 +84,14 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
 
         return function () {
             var launch = shortcut[1].trim();
-            var wm_class, wmFn, title, titleFn;
+            var wm_class, wmFn, title, titleFn, runAndRaise;
             [wm_class, wmFn] = _prepare(shortcut[2].trim());
             [title, titleFn] = _prepare(shortcut[3].trim());
+
+            runAndRaise = false;
+            if (shortcut.length > 4 && shortcut[4] === "&") {
+                runAndRaise = true;
+            }
 
             let seen = 0;
 
@@ -152,6 +157,9 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                             focusWindow(lastWindow);
                         }
                     }
+                }
+                if (runAndRaise) {
+                    imports.misc.util.spawnCommandLine(launch);
                 }
             } else {
                 imports.misc.util.spawnCommandLine(launch);
