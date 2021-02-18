@@ -31,14 +31,18 @@ Configuration
 
 On the first run, `shortcuts.conf` gets created from `shortcuts.default` if not exists. There you define your own shortcuts. The shortcuts may be defined in two ways:
 
+#### Note:
+
+If a command needs to contain commas, the pipe character (|) should be used as a separator.
 
 ## Run or raise form
 
 This form let you cycle between open instances of the application or if not found, launches a new instance.
 
- Run-or-raise form: `shortcut,command,[wm_class],[title]`
-   * wm_class and title are optional and case sensitive
+ Run-or-raise form: `shortcut,command,[wm_class],[title][,mode]`
+   * wm_class, title and mode are optional and case sensitive
    * if none is set, lowercased launch-command is compared with lowercased windows wm_classes and titles
+
 
 ### Examples:
 
@@ -81,6 +85,13 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 ```
 <Super><Ctrl>4,/opt/pycharm-community-2017.2.4/bin/pycharm.sh,,/(NetBeans IDE|PyCharm)/
 <Super><Ctrl>KP_4,/opt/netbeans/bin/netbeans,,/(NetBeans IDE|PyCharm)/
+```
+
+## Always run and raise
+
+To run a command/script whether a window is already open or not, add the always-run parameter (mode) to the definition.
+```
+<Super>t,my_tmux_script.sh,kitty,,always-run
 ```
 
 ## Run only form

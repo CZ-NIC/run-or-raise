@@ -84,9 +84,13 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
 
         return function () {
             var launch = shortcut[1].trim();
-            var wm_class, wmFn, title, titleFn;
+            var wm_class, wmFn, title, titleFn, mode;
             [wm_class, wmFn] = _prepare(shortcut[2].trim());
             [title, titleFn] = _prepare(shortcut[3].trim());
+
+            if (shortcut.length > 4) {
+                mode = shortcut[4].trim();
+            }
 
             let seen = 0;
 
@@ -153,7 +157,8 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                         }
                     }
                 }
-            } else {
+            }
+            if (!seen || mode === "always-run") {
                 imports.misc.util.spawnCommandLine(launch);
             }
             return;
@@ -183,7 +188,11 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 if (line[0] == "#" || line.trim() == "") {
                     continue;
                 }
-                let s = line.split(",")
+                var splitter = ",";
+                if (line.indexOf("|") > -1) {
+                    splitter = "|";
+                }
+                let s = line.split(splitter);
                 if (s.length > 2) { // shortcut, launch, wm_class, title
                     this.keyManager.listenFor(s[0].trim(), this.jumpapp(s))
                 } else { // shortcut, command
