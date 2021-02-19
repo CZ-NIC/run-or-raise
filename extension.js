@@ -157,10 +157,8 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                         }
                     }
                 }
-                if (mode === "always-run") {
-                    imports.misc.util.spawnCommandLine(launch);
-                }
-            } else {
+            }
+            if (!seen || mode === "always-run") {
                 imports.misc.util.spawnCommandLine(launch);
             }
             return;
