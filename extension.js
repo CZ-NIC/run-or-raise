@@ -8,40 +8,42 @@ const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
 
 function log() {
-    // global.log.apply(null, arguments); uncomment when debugging
+    // global.log.apply(null, arguments); // uncomment when debugging
 }
+
+const Mode = Object.freeze({
+    "ALWAYS_RUN": "always-run", // both runs the command and raises a window
+    "RUN_ONLY": "run-only" // just runs the command without cycling windows
+})
+
 
 const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
     Name: 'MyKeyManager',
 
-    _init: function () {
+    _init: function() {
         this.grabbers = new Map()
 
         global.display.connect(
             'accelerator-activated',
-            Lang.bind(this, function (display, action, deviceId, timestamp) {
+            Lang.bind(this, function(display, action, deviceId, timestamp) {
                 log('Accelerator Activated: [display={}, action={}, deviceId={}, timestamp={}]',
                     display, action, deviceId, timestamp)
                 this._onAccelerator(action)
             }))
     },
 
-    listenFor: function (accelerator, callback) {
+    listenFor: function(accelerator, callback) {
 
-        log('Trying to listen for hot key [accelerator={}]', accelerator)
+        log('Trying to listen for hot key', accelerator)
         let action = global.display.grab_accelerator(accelerator, 0)
-        log("action:")
-        log(action)
-
-        if (action == Meta.KeyBindingAction.NONE) {
+        if (action === Meta.KeyBindingAction.NONE) {
             log('Unable to grab accelerator [binding={}]', accelerator)
         } else {
-            log('Grabbed accelerator [action={}]', action)
+            // Grabbed accelerator action
+            // Receive binding name for action
             let name = Meta.external_binding_name_for_action(action)
-            log('Received binding name for action [name={}, action={}]',
-                name, action)
 
-            log('Requesting WM to allow binding [name={}]', name)
+            // Requesting WM to allow binding name
             Main.wm.allowKeybinding(name, Shell.ActionMode.ALL)
 
             this.grabbers.set(action, {
@@ -54,7 +56,7 @@ const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/
 
     },
 
-    _onAccelerator: function (action) {
+    _onAccelerator: function(action) {
         let grabber = this.grabbers.get(action)
 
         if (grabber) {
@@ -69,51 +71,69 @@ const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/
 const Controller = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
     Name: 'MyController',
 
-    //This is a javascript-closure which will return the event handler
-    //for each hotkey with it's id. (id=1 For <Super>+1 etc)
-    jumpapp: function (shortcut) {
-        function _prepare(s) {
-            // Return appropriate method for s
-            if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
-                // s is entoured with slashes, ex: `/my-program/`, we want to do a regular match when searching
+    /**
+     * Closure returns the event handler triggered by system on a shortcut
+     * @param command
+     * @param wm_class
+     * @param title
+     * @param {dict(mode, parameter)} mode
+     * @return function
+     */
+    raise: function(command = "", wm_class = "", title = "", modes = null) {
+        /**
+         * Return appropriate method for s, depending if s is a regex (search) or a string (indexOf)
+         * @param s
+         * @return {(string|string)[]|(RegExp|string)[]} Tuple
+         * @private
+         */
+        function _allow_regex(s) {
+            if (!s) {
+                return [s, () => {
+                }]
+            } else if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
+                // s is surround with slashes, ex: `/my-program/`, we want to do a regular match when searching
                 return [new RegExp(s.substr(1, s.length - 2)), "search"];
             } else {  // s is a classic string, we just do indexOf match
                 return [s, "indexOf"];
             }
         }
 
-        return function () {
-            var launch = shortcut[1].trim();
-            var wm_class, wmFn, title, titleFn, mode;
-            [wm_class, wmFn] = _prepare(shortcut[2].trim());
-            [title, titleFn] = _prepare(shortcut[3].trim());
-
-            if (shortcut.length > 4) {
-                mode = shortcut[4].trim();
-            }
-
-            let seen = 0;
-
-            let is_conforming = function (wm) {
-                var window_class = wm.get_wm_class() || '';
-                var window_title = wm.get_title() || '';
-                // check if the current window is conforming to the search criteria
-                if (wm_class) { // seek by class
-                    // wm_class AND if set, title must match
-                    if (window_class[wmFn](wm_class) > -1 && (!title || window_title[titleFn](title) > -1)) {
-                        return true;
-                    }
-                } else if ((title && window_title[titleFn](title) > -1) || // seek by title
-                    (!title && ((window_class.toLowerCase().indexOf(launch.toLowerCase()) > -1) || // seek by launch-command in wm_class
-                        (window_title.toLowerCase().indexOf(launch.toLowerCase()) > -1))) // seek by launch-command in title
-                ) {
+        function is_conforming(wm) {
+            const window_class = wm.get_wm_class() || '';
+            const window_title = wm.get_title() || '';
+            // check if the current window is conforming to the search criteria
+            if (wm_class) { // seek by class
+                // wm_class AND if set, title must match
+                if (window_class[wmFn](wm_class) > -1 && (!title || window_title[titleFn](title) > -1)) {
                     return true;
                 }
-                return false;
-            };
+            } else if ((title && window_title[titleFn](title) > -1) || // seek by title
+                (!title && ((window_class.toLowerCase().indexOf(command.toLowerCase()) > -1) || // seek by launch-command in wm_class
+                    (window_title.toLowerCase().indexOf(command.toLowerCase()) > -1))) // seek by launch-command in title
+            ) {
+                return true;
+            }
+            return false;
+        };
+
+        let wmFn, titleFn;
+        [wm_class, wmFn] = _allow_regex(wm_class);
+        [title, titleFn] = _allow_regex(title);
+
+        return function() {
+
+            if (modes[Mode.RUN_ONLY]) {
+                imports.misc.util.spawnCommandLine(command)
+                return
+            }
+
+            /**
+             * @type {window}
+             */
+            let seen = null;
 
             // Switch windows on active workspace only
-            var active_workspace;
+            let active_workspace;
             const workspace_manager = global.display.get_workspace_manager();
             if (settings.get_boolean('isolate-workspace')) {
                 active_workspace = workspace_manager.get_active_workspace();
@@ -121,19 +141,19 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 active_workspace = null;
             }
 
-            var loop;
+            let windows;
             if (global.display.get_tab_list(0, active_workspace).length === 0) {
-                loop = [];
+                windows = [];
             } else if (is_conforming(global.display.get_tab_list(0, active_workspace)[0])) {
                 // current window conforms, let's focus the oldest windows of the group
-                loop = global.display.get_tab_list(0, active_workspace).slice(0).reverse();
+                windows = global.display.get_tab_list(0, active_workspace).slice(0).reverse();
             } else {
                 // current window doesn't conform, let's find the youngest conforming one
-                loop = global.display.get_tab_list(0, active_workspace); // Xglobal.get_window_actors()
+                windows = global.display.get_tab_list(0, active_workspace); // Xglobal.get_window_actors()
             }
-            for (var wm of loop) {
-                if (is_conforming(wm)) {
-                    seen = wm;
+            for (let window of windows) {
+                if (is_conforming(window)) {
+                    seen = window;
                     if (!seen.has_focus()) {
                         break; // there might exist another window having the same parameters
                     }
@@ -158,56 +178,67 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                     }
                 }
             }
-            if (!seen || mode === "always-run") {
-                imports.misc.util.spawnCommandLine(launch);
+            if (!seen || modes[Mode.ALWAYS_RUN]) {
+                imports.misc.util.spawnCommandLine(command);
             }
-            return;
         }
     },
 
-    enable: function () {
+    enable: function() {
+        let s;
         try {
-            var s = Shell.get_file_contents_utf8_sync(confpath);
+            s = Shell.get_file_contents_utf8_sync(confpath);
         } catch (e) {
             log("Run or raise: can't load confpath" + confpath + ", creating new file from default");
             // imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
-            imports.misc.util.spawnCommandLine("mkdir -p "+ confpath.substr(0, confpath.lastIndexOf("/")));
+            imports.misc.util.spawnCommandLine("mkdir -p " + confpath.substr(0, confpath.lastIndexOf("/")));
             imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
             try {
-                var s = Shell.get_file_contents_utf8_sync(defaultconfpath); // it seems confpath file is not ready yet, reading defaultconfpath
+                s = Shell.get_file_contents_utf8_sync(defaultconfpath); // it seems confpath file is not ready yet, reading defaultconfpath
             } catch (e) {
                 log("Run or raise: Failed to create default file")
                 return;
             }
         }
-        this.shortcuts = s.split("\n");
+        let shortcuts = s.split("\n");
         this.keyManager = new KeyManager();
 
-        for (let line of this.shortcuts) {
+        // parse shortcut file
+        for (let line of shortcuts) {
             try {
-                if (line[0] == "#" || line.trim() == "") {
+                if (line[0] === "#" || line.trim() === "") {  // skip empty lines and comments
                     continue;
                 }
-                var splitter = ",";
-                if (line.indexOf("|") > -1) {
-                    splitter = "|";
-                }
-                let s = line.split(splitter);
-                if (s.length > 2) { // shortcut, launch, wm_class, title
-                    this.keyManager.listenFor(s[0].trim(), this.jumpapp(s))
-                } else { // shortcut, command
-                    this.keyManager.listenFor(s[0].trim(), function () {
-                        imports.misc.util.spawnCommandLine(s[1].trim())
-                    })
+
+                // Optional argument quoting in the format: `shortcut[:mode][:mode],[command],[wm_class],[title]`
+                // ', b, c, "d, e,\" " f", g, h' -> ["", "b", "c", "d, e,\" \" f", "g", "h"]
+                let arguments = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
+                    .map(s => s.trim())
+                    .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
+                let [shortcut_mode, command, wm_class, title] = arguments;
+
+                // Split shortcut[:mode][:mode] -> shortcut, modes
+                let [shortcut, ...modes] = shortcut_mode.split(":")
+                shortcut = shortcut.trim()
+                // Store to "shortcut:cmd:launch(2)" → modes = {"cmd": true, "launch": 2}
+                modes = Object.assign({}, ...modes
+                    .map(m => m.match(/(?<key>.*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                    .filter(m => m && Object.values(Mode).includes(m.groups.key)) // "launch" must be a valid Mode
+                    .map(m => ({[m.groups.key]: m.groups.arg || true}))) // {"launch": true}
+
+                if (arguments.length <= 2) {
+                    // Run only mode, we never try to raise a window
+                    modes[Mode.RUN_ONLY] = true
                 }
 
+                this.keyManager.listenFor(shortcut, this.raise(command, wm_class, title, modes))
             } catch (e) {
-                log("Run or raise: can't parse line: " + line)
+                log("Run or raise: can't parse line: " + line, e)
             }
         }
     },
 
-    disable: function () {
+    disable: function() {
         for (let it of this.keyManager.grabbers) {
             try {
                 global.display.ungrab_accelerator(it[1].action)

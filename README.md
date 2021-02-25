@@ -1,21 +1,13 @@
-Run-or-raise
-============
+# Run-or-raise
 
 https://extensions.gnome.org/extension/1336/run-or-raise/
 
-IMPORTANT Upgrade Notice
-======
-Backup your shortcuts.conf when **upgrading**, since GNOME will wipe it. (Since the new version, shortcuts.conf will be saved in `~/.config/run-or-raise/` safely.)
-(This notice will be removed after Ubuntu 20.04 LTS release.)
-
-About project
-=============
+# About project
 
 I assume the run-or-raise style as the most efficient way of launching window. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it'll get focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by `<Super>+number` shortcuts. But what if you use more programs than nine? What if you don't want the unnecessary taskbar to occupy precious place on your screen?  
 With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old `xbindkeys` and `jumpapp` to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to `shortcuts.conf` file.
 
-Installation
-============
+# Installation
 
 * through GNOME3 [extensions](https://extensions.gnome.org/extension/1336/run-or-raise/
 ) (official, easy, not always up to date)
@@ -26,26 +18,46 @@ OR
 * in the extension preferences, you may edit `shortcuts.conf` file to use your own shortcuts
 * you may load new shortcuts without restarting, just change the file `shortcuts.conf`, and disable and enable.
 
-Configuration
-=============
+# Configuration
 
-On the first run, `shortcuts.conf` gets created from `shortcuts.default` if not exists. There you define your own shortcuts. The shortcuts may be defined in two ways:
+On the first run, `~/.config/run-or-raise/shortcuts.conf` gets created from [`shortcuts.default`](shortcuts.default) if not exists. There you define your own shortcuts.
 
-#### Note:
+Note that if an argument should contain a comma, use double quotes around. 
 
-If a command needs to contain commas, the pipe character (|) should be used as a separator.
+## How to create a shortcut
 
-## Run or raise form
+When you trigger a shortcut it lets you cycle amongst open instances of the application or if not found, launches a new instance. The file consists of shortcuts in the following form:
 
-This form let you cycle between open instances of the application or if not found, launches a new instance.
+`shortcut[:mode],[command],[wm_class],[title]`
 
- Run-or-raise form: `shortcut,command,[wm_class],[title][,mode]`
-   * wm_class, title and mode are optional and case sensitive
-   * if none is set, lowercased launch-command is compared with lowercased windows wm_classes and titles
+* `wm_class`, `title` and `mode` arguments are optional and case-sensitive
+* if neither `wm_class` nor `title`  is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
+* multiple modes can be used together
 
+## Modes
 
-### Examples:
+Modes are special instructions that let you change the triggered behaviour. 
 
+* `always-run` Both runs the command and raises a window
+    ```
+    # Runs a command whether a window with wm_class 'kitty' is already open or not
+    <Super>t:always-run,my_tmux_script.sh,kitty
+    ```
+* `run-only` Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit and never raises a window. The keyword is implicit if no superfluous commas are noted in the line: `shortcut,command`   
+
+    ```
+    # this line will launch the notify-send command.
+    <Super>h,notify-send Hello world
+  
+    # this line WILL raise a Firefox window or launches a command (note a trailing comma)
+    <Super>f,firefox,
+  
+    # these equivalent lines will always launch a new Firefox instance, never raising a window
+    <Super>f,firefox    
+    <Super>f:run-only,firefox,
+    ```
+
+## Examples
 
 This line cycles any firefox window (matched by "firefox" in the window title) OR if not found, launches a new firefox instance:
 
@@ -87,31 +99,8 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 <Super><Ctrl>KP_4,/opt/netbeans/bin/netbeans,,/(NetBeans IDE|PyCharm)/
 ```
 
-## Always run and raise
-
-To run a command/script whether a window is already open or not, add the always-run parameter (mode) to the definition.
-```
-<Super>t,my_tmux_script.sh,kitty,,always-run
-```
-
-## Run only form
-
-Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit.
-
-Run only form: `shortcut,command`
-
-### Examples:
-
-This line will launch notify-send command.
-
-```
-<Super>h,notify-send Hello world
-```
-
-
-Tips
-===
+# Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
-* How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
+* How to know the wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
-* In the case of segfault, check no conflicting keybind (are present)[https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994], then submit an issue.
+* In the case of segfault, check no conflicting key binding (is present)[https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994], then submit an issue.
