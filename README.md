@@ -75,6 +75,11 @@ Modes are special instructions that let you change the triggered behaviour. Some
   <Super>o:raise-or-register  
   ```
 
+You can combine multiple modes by appending a colon. On the first hit, we register a window. On the second, we raise it while bringing to the active workspace.
+```
+<Super>i:raise-or-register:move-window-to-active-workspace
+```
+
 ## Examples
 
 This line cycles any firefox window (matched by "firefox" in the window title) OR if not found, launches a new firefox instance:

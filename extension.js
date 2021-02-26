@@ -1,5 +1,4 @@
 const Main = imports.ui.main;
-const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Lang = imports.lang;
 const Shell = imports.gi.Shell;
@@ -7,14 +6,55 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
 
+let app, conf_path, default_conf_path, settings;
+
 function log() {
-     // global.log.apply(null, arguments); // uncomment when debugging
+    // global.log.apply(null, arguments); // uncomment when debugging
 }
 
 /**
  * Allow user to cast a specific instruction
  */
-const Mode = Object.freeze({
+class Mode {
+
+    /**
+     * @param values Ex: [["cmd", true], ["launch": 2]]
+     */
+    constructor(values) {
+        this.values = []
+        values.forEach(key_val => this.add(key_val[0], key_val[1]))
+    }
+
+    /**
+     * @param key
+     * @return Current key value if contained in the current object or true if such key is on in the global settings
+     */
+    get(key) {
+        try {
+            return this.values[key] || settings.get_boolean(key)
+        } catch (e) { // key does not exist in the global settings
+            return false
+        }
+    }
+
+    /**
+     * Adds new keyword
+     * @param key
+     * @param val
+     */
+    add(key, val) {
+        if (!Object.values(Mode).includes(key)) {
+            throw `Unknown mode: ${key}`;
+        }
+        this.values[key] = val
+    }
+}
+
+/**
+ * Assign static keywords to the object Mode.
+ * The value should be the same as the one in gschema.xml as we can compare globals and shorcuts.conf keywords at once
+ */
+Object.assign(Mode, Object.freeze({
     "ALWAYS_RUN": "always-run", // both runs the command and raises a window
     "RUN_ONLY": "run-only", // just runs the command without cycling windows
     "ISOLATE_WORKSPACE": "isolate-workspace", // Switch windows on the active workspace only
@@ -25,7 +65,7 @@ const Mode = Object.freeze({
     "REGISTER": "register", // register current window to be re-raised by Mode.RAISE
     "RAISE": "raise", // raise the windows previously registered by Mode.REGISTER
     "RAISE_OR_REGISTER": "raise-or-register" // if nothing registered yet, register current
-})
+}))
 
 /**
  * Registered windows to be raised
@@ -55,7 +95,7 @@ const KeyManager = new Lang.Class({
 
     listenFor: function(accelerator, callback) {
 
-        log('Trying to listen for hot key', accelerator)
+        //log('Trying to listen for hot key', accelerator)
         let action = global.display.grab_accelerator(accelerator, 0)
         if (action === Meta.KeyBindingAction.NONE) {
             log('Unable to grab accelerator [binding={}]', accelerator)
@@ -93,22 +133,28 @@ class Shortcut {
 
 
     /**
-     * Closure returns the event handler triggered by system on a shortcut
+     * Single shortcut binding representation
      * @param command
      * @param wm_class
      * @param title
-     * @param {dict(mode, parameter)} mode
+     * @param {Mode} mode
      * @return function
      */
-    constructor(command = "", wm_class = "", title = "", modes = null) {
+    constructor(command = "", wm_class = "", title = "", mode = null) {
         this.command = command
         this.wm_class = wm_class
         this.title = title
-        this.modes = modes
+        this.mode = mode
         this.wmFn = null
         this.titleFn = null;
         [this.wm_class, this.wmFn] = this._allow_regex(wm_class);
         [this.title, this.titleFn] = this._allow_regex(title);
+
+        /**
+         * Shortcuts remembers the windows it is bind to
+         * @type {window}
+         */
+        this.registered_window = null;
     }
 
     /**
@@ -136,19 +182,18 @@ class Shortcut {
     get_windows() {
         // Switch windows on active workspace only
         const workspace_manager = global.display.get_workspace_manager()
-        const active_workspace = (settings.get_boolean('isolate-workspace') || this.modes[Mode.ISOLATE_WORKSPACE]) ?
-            workspace_manager.get_active_workspace() : null
+        const active_workspace = this.mode.get(Mode.ISOLATE_WORKSPACE) ? workspace_manager.get_active_workspace() : null
 
         // fetch windows
         return global.display.get_tab_list(0, active_workspace)
     }
 
 
-    is_conforming(wm) {
+    is_conforming(window) {
         let [command, wm_class, wmFn, title, titleFn] = [this.command, this.wm_class, this.wmFn, this.title, this.titleFn];
 
-        const window_class = wm.get_wm_class() || '';
-        const window_title = wm.get_title() || '';
+        const window_class = window.get_wm_class() || '';
+        const window_title = window.get_title() || '';
         // check if the current window is conforming to the search criteria
         if (wm_class) { // seek by class
             // wm_class AND if set, title must match
@@ -171,7 +216,6 @@ class Shortcut {
      * @return {boolean}
      */
     focus_window(window, check = false) {
-        const modes = this.modes
         if (check
             && (!window  // gnome shell reloaded and window IDs changed (even if window might be still there)
                 || !this.get_windows().filter(w => w.get_id() == window.get_id()).length // window closed
@@ -179,13 +223,13 @@ class Shortcut {
             return false
         }
 
-        if (settings.get_boolean('move-window-to-active-workspace') || modes[Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE]) {
+        if (this.mode.get(Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE)) {
             const activeWorkspace = global.workspaceManager.get_active_workspace();
             window.change_workspace(activeWorkspace);
         }
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0);
-        if (settings.get_boolean('center-mouse-to-focused-window') || modes[Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW]) {
+        if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
             const pointer = Gdk.Display.get_default().get_device_manager().get_client_pointer();
             const screen = pointer.get_position()[0];
             const center = window.get_center();
@@ -195,28 +239,29 @@ class Shortcut {
     }
 
     /**
-     * Trigger the shortcut
+     * Trigger the shortcut (system does it)
      * @return {boolean|*}
      */
     trigger() {
-        let [command, modes] = [this.command, this.modes];
-        // Shortcut has been triggered
-        let i;
-        if ((i = modes[Mode.RAISE_OR_REGISTER])) {
+        let [command, mode] = [this.command, this.mode];
+
+        // Check raising keywords
+        let i
+        if ((i = mode.get(Mode.RAISE_OR_REGISTER))) {
             if (!this.registered_window || !this.focus_window(this.registered_window, true)) {
                 this.registered_window = this.get_windows()[0]
             }
             return
         }
-        if ((i = modes[Mode.REGISTER])) {
+        if ((i = mode.get(Mode.REGISTER))) {
             return register[i] = this.get_windows()[0]  // will stay undefined if there is no such window
-            // return register[i] = this.get_windows()[50] // May raise an exception, XXX try with [20]
         }
-        if ((i = modes[Mode.RAISE])) {
+        if ((i = mode.get(Mode.RAISE))) {
             return this.focus_window(register[i], true)
         }
 
-        if (modes[Mode.RUN_ONLY]) {
+        // Check if the shortcut should just run without raising a window
+        if (mode.get(Mode.RUN_ONLY)) {
             return imports.misc.util.spawnCommandLine(command)
         }
 
@@ -243,10 +288,10 @@ class Shortcut {
                 log('no focus, go to:' + seen.get_wm_class());
                 this.focus_window(seen);
             } else {
-                if (settings.get_boolean('minimize-when-unfocused') || modes[Mode.MINIMIZE_WHEN_UNFOCUSED]) {
+                if (mode.get(Mode.MINIMIZE_WHEN_UNFOCUSED)) {
                     seen.minimize();
                 }
-                if (settings.get_boolean('switch-back-when-focused') || modes[Mode.SWITCH_BACK_WHEN_FOCUSED]) {
+                if (mode.get(Mode.SWITCH_BACK_WHEN_FOCUSED)) {
                     const window_monitor = window.get_monitor();
                     const window_list = windows.filter(w => w.get_monitor() === window_monitor && w !== window)
                     const last_window = window_list[0];
@@ -257,33 +302,35 @@ class Shortcut {
                 }
             }
         }
-        if (!seen || modes[Mode.ALWAYS_RUN]) {
+        if (!seen || mode.get(Mode.ALWAYS_RUN)) {
             imports.misc.util.spawnCommandLine(command);
         }
     }
 
 }
 
+/**
+ * Main controller to de/register shortcuts
+ */
 class Controller {
 
     enable() {
         let s;
         try {
-            s = Shell.get_file_contents_utf8_sync(confpath);
+            s = Shell.get_file_contents_utf8_sync(conf_path);
         } catch (e) {
-            log("Run or raise: can't load confpath" + confpath + ", creating new file from default");
-            // imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
-            imports.misc.util.spawnCommandLine("mkdir -p " + confpath.substr(0, confpath.lastIndexOf("/")));
-            imports.misc.util.spawnCommandLine("cp " + defaultconfpath + " " + confpath);
+            log("Run or raise: can't load confpath" + conf_path + ", creating new file from default");
+            imports.misc.util.spawnCommandLine("mkdir -p " + conf_path.substr(0, conf_path.lastIndexOf("/")));
+            imports.misc.util.spawnCommandLine("cp " + default_conf_path + " " + conf_path);
             try {
-                s = Shell.get_file_contents_utf8_sync(defaultconfpath); // it seems confpath file is not ready yet, reading defaultconfpath
+                s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
             } catch (e) {
                 log("Run or raise: Failed to create default file")
                 return;
             }
         }
-        let shortcuts = s.split("\n");
-        this.keyManager = new KeyManager();
+        let shortcuts = s.split("\n")
+        this.keyManager = new KeyManager()
 
         // parse shortcut file
         for (let line of shortcuts) {
@@ -299,21 +346,23 @@ class Controller {
                     .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
                 let [shortcut_mode, command, wm_class, title] = args;
 
-                // Split shortcut[:mode][:mode] -> shortcut, modes
+                // Split shortcut[:mode][:mode] -> shortcut, mode
                 let [shortcut, ...modes] = shortcut_mode.split(":")
                 shortcut = shortcut.trim()
-                // Store to "shortcut:cmd:launch(2)" → modes = {"cmd": true, "launch": 2}
-                modes = Object.assign({}, ...modes
+                // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
+                let mode = new Mode(modes
                     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
-                    .filter(m => m && Object.values(Mode).includes(m.groups.key)) // "launch" must be a valid Mode
-                    .map(m => ({[m.groups.key]: m.groups.arg || true}))) // {"launch": true}
+                    .filter(m => m) // "launch" must be a valid mode string
+                    .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+                )
 
                 if (args.length <= 2) { // Run only mode, we never try to raise a window
-                    modes[Mode.RUN_ONLY] = true
+                    mode.add(Mode.RUN_ONLY, true)
                 }
 
+                let shortcut_o = new Shortcut(command, wm_class, title, mode)
                 this.keyManager.listenFor(shortcut, () => {
-                    new Shortcut(command, wm_class, title, modes).trigger()
+                    shortcut_o.trigger()
                 })
             } catch (e) {
                 log("Run or raise: can't parse line: " + line, e)
@@ -334,11 +383,11 @@ class Controller {
     }
 }
 
-var app, confpath, confdir, defaultconfpath, settings;
+// Classes launched by gnome-shell
 
 function init(options) {
-    confpath = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
-    defaultconfpath = options.path + "/shortcuts.default";
+    conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
+    default_conf_path = options.path + "/shortcuts.default";
     app = new Controller();
     settings = Convenience.getSettings();
 }
