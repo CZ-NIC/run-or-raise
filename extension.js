@@ -9,7 +9,7 @@ const Gdk = imports.gi.Gdk
 let app, conf_path, default_conf_path, settings;
 
 function log() {
-    // global.log.apply(null, arguments); // uncomment when debugging
+    //global.log.apply(null, arguments); // uncomment when debugging
 }
 
 /**
@@ -64,7 +64,8 @@ Object.assign(Mode, Object.freeze({
     "CENTER_MOUSE_TO_FOCUSED_WINDOW": "center-mouse-to-focused-window",
     "REGISTER": "register", // register current window to be re-raised by Mode.RAISE
     "RAISE": "raise", // raise the windows previously registered by Mode.REGISTER
-    "RAISE_OR_REGISTER": "raise-or-register" // if nothing registered yet, register current
+    "RAISE_OR_REGISTER": "raise-or-register", // if nothing registered yet, register current
+    "VERBOSE": "verbose"
 }))
 
 /**
@@ -113,6 +114,7 @@ const KeyManager = new Lang.Class({
                 callback: callback,
                 action: action
             })
+            //log('Successfully set', accelerator, name, action)
         }
 
     },
@@ -175,6 +177,18 @@ class Shortcut {
         }
     }
 
+    debug() {
+        if (!this.mode.get(Mode.VERBOSE)) {
+            return
+        }
+        let s = "Run-or-raise>"
+        for (let a of arguments) {
+            s += " " + a
+        }
+        global.log.apply(null, [s]);
+        imports.misc.util.spawn(["notify-send", s]); // not very reliable
+    }
+
 
     /**
      * @return {*} Current windows
@@ -220,6 +234,7 @@ class Shortcut {
             && (!window  // gnome shell reloaded and window IDs changed (even if window might be still there)
                 || !this.get_windows().filter(w => w.get_id() == window.get_id()).length // window closed
             )) {
+            this.debug("Window not found")
             return false
         }
 
@@ -235,6 +250,7 @@ class Shortcut {
             const center = window.get_center();
             pointer.warp(screen, center.x, center.y);
         }
+        this.debug("Window activated")
         return true
     }
 
@@ -243,7 +259,10 @@ class Shortcut {
      * @return {boolean|*}
      */
     trigger() {
-        let [command, mode] = [this.command, this.mode];
+        let mode = this.mode;
+
+        // Debug info
+        this.debug(`trigger title: ${this.title}, titleFn: ${this.titleFn}, wm_class: ${this.wm_class}, wmFn: ${this.wmFn}`);
 
         // Check raising keywords
         let i
@@ -262,7 +281,7 @@ class Shortcut {
 
         // Check if the shortcut should just run without raising a window
         if (mode.get(Mode.RUN_ONLY)) {
-            return imports.misc.util.spawnCommandLine(command)
+            return this.run()
         }
 
         /**
@@ -303,10 +322,16 @@ class Shortcut {
             }
         }
         if (!seen || mode.get(Mode.ALWAYS_RUN)) {
-            imports.misc.util.spawnCommandLine(command);
+            this.run();
         }
     }
 
+    run() {
+        if (this.mode.get(Mode.VERBOSE)) {
+            this.debug("running:", this.command)
+        }
+        return imports.misc.util.spawnCommandLine(this.command);
+    }
 }
 
 /**
@@ -361,6 +386,7 @@ class Controller {
                 }
 
                 let shortcut_o = new Shortcut(command, wm_class, title, mode)
+                shortcut_o.debug("Registering shortcut", shortcut)
                 this.keyManager.listenFor(shortcut, () => {
                     shortcut_o.trigger()
                 })

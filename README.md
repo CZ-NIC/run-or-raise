@@ -96,6 +96,8 @@ If nothing registered yet, register the current window. Next time raise it unles
 <Super>i:raise-or-register
 <Super>o:raise-or-register  
 ```
+### `verbose`
+Put debug details into system log (possible at `/var/log/syslog`) and popups some of them via `notify-send`
 
 
 ## Examples
@@ -153,7 +155,7 @@ How to implement a new mode?
 * create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
 * create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
 * put the logics into `Shortcut.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
-  * you may need https://gjs.guide/guides or https://gjs-docs.gnome.org
+  * you may need [gjs.guide](https://gjs.guide/extensions), [gnome-shell source](https://gitlab.gnome.org/GNOME/gnome-shell/-/blob/master/js/) or [gjs-docs.gnome.org](https://gjs-docs.gnome.org)
 * document here in the [README.md](README.md)
 * put a description into [CHANGELOG.md](CHANGELOG.md) file
 * raise a version in [metadata.json](metadata.json)
