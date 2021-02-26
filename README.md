@@ -22,7 +22,10 @@ OR
 
 On the first run, `~/.config/run-or-raise/shortcuts.conf` gets created from [`shortcuts.default`](shortcuts.default) if not exists. There you define your own shortcuts.
 
-Note that if an argument should contain a comma, use double quotes around. 
+Note that if an argument should contain a comma, use double quotes around.
+```
+<Super>i,"/usr/bin/cmd comma, needed",,application_title
+```
 
 ## How to create a shortcut
 
@@ -38,47 +41,62 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 
 Modes are special instructions that let you change the triggered behaviour. Some of them can be turned on globally in the extension preferences (so you do not have to specify them for every single shortcut if you need them everywhere).
 
-* `isolate-workspace` Switch windows on the active workspace only
-* `minimize-when-unfocused` Minimizes your target when unfocusing
-* `switch-back-when-focused` Switch back to the previous window when focused
-* `move-window-to-active-workspace` Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
-* `center-mouse-to-focused-window` After focus move mouse to window center
-* `always-run` Both runs the command and raises a window
-    ```
-    # Runs a command whether a window with wm_class 'kitty' is already open or not
-    <Super>t:always-run,my_tmux_script.sh,kitty
-    ```
-* `run-only` Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit and never raises a window. The keyword is implicit if no superfluous commas are noted in the line: `shortcut,command`   
-
-    ```
-    # this line will launch the notify-send command.
-    <Super>h,notify-send Hello world
-  
-    # this line WILL raise a Firefox window or launches a command (note a trailing comma)
-    <Super>f,firefox,
-  
-    # these equivalent lines will always launch a new Firefox instance, never raising a window
-    <Super>f,firefox    
-    <Super>f:run-only,firefox,
-    ```
-* `register(0)` Register the current window dynamically to be re-raised by using `raise` mode with the same number in the argument
-  ```
-  <Super><Ctrl>KP_0:register(1)
-  <Super>KP_0:raise(1)
-  <Super><Ctrl>KP_Delete:register(2)
-  <Super>KP_Delete:raise(2)
-  ```
-* `raise(0)` Raise the windows previously registered by the `register` keyword
-* `raise-or-register` If nothing registered yet, register the current window. Next time raise it unless the window is closed. In the example, we set <kbd>Super+i</kbd> and <kbd>Super+o</kbd> to bind a window each. 
-  ```   
-  <Super>i:raise-or-register
-  <Super>o:raise-or-register  
-  ```
-
 You can combine multiple modes by appending a colon. On the first hit, we register a window. On the second, we raise it while bringing to the active workspace.
 ```
 <Super>i:raise-or-register:move-window-to-active-workspace
 ```
+
+### `isolate-workspace`
+Switch windows on the active workspace only
+  ```
+  # cycles Firefox instances in the current workspace
+  <Super>KP_1,firefox,
+  ```
+### `minimize-when-unfocused`
+Minimizes your target when unfocusing
+### `switch-back-when-focused`
+Switch back to the previous window when focused
+### `move-window-to-active-workspace`
+Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
+### `center-mouse-to-focused-window`
+After focus move mouse to window center
+### `always-run`
+Both runs the command and raises a window
+```
+# Runs a command whether a window with wm_class 'kitty' is already open or not
+<Super>t:always-run,my_tmux_script.sh,kitty
+```
+### `run-only`
+Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit and never raises a window. The keyword is implicit if no superfluous commas are noted in the line: `shortcut,command`   
+
+```
+# this line will launch the notify-send command.
+<Super>h,notify-send Hello world
+
+# this line WILL raise a Firefox window or launches a command (note a trailing comma)
+<Super>f,firefox,
+
+# these equivalent lines will always launch a new Firefox instance, never raising a window
+<Super>f,firefox    
+<Super>f:run-only,firefox,
+```
+### `register(0)`
+Register the current window dynamically to be re-raised by using `raise` mode with the same number in the argument
+```
+<Super><Ctrl>KP_0:register(1)
+<Super>KP_0:raise(1)
+<Super><Ctrl>KP_Delete:register(2)
+<Super>KP_Delete:raise(2)
+```
+### `raise(0)`
+Raise the windows previously registered by the `register` keyword
+### `raise-or-register`
+If nothing registered yet, register the current window. Next time raise it unless the window is closed. In the example, we set <kbd>Super+i</kbd> and <kbd>Super+o</kbd> to bind a window each. 
+```   
+<Super>i:raise-or-register
+<Super>o:raise-or-register  
+```
+
 
 ## Examples
 
@@ -127,3 +145,16 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 * How to know the wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
 * In the case of segfault, check no conflicting key binding (is present)[https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994], then submit an issue.
+
+## Developer guide
+
+How to implement a new mode?
+
+* create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
+* create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
+* put the logics into `Shortcut.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
+  * you may need https://gjs.guide/guides or https://gjs-docs.gnome.org
+* document here in the [README.md](README.md)
+* put a description into [CHANGELOG.md](CHANGELOG.md) file
+* raise a version in [metadata.json](metadata.json)
+* create a pull request with (preferably) a single commit
