@@ -11,6 +11,9 @@ function log() {
     // global.log.apply(null, arguments); // uncomment when debugging
 }
 
+/**
+ * Allow user to cast a specific instruction
+ */
 const Mode = Object.freeze({
     "ALWAYS_RUN": "always-run", // both runs the command and raises a window
     "RUN_ONLY": "run-only", // just runs the command without cycling windows
@@ -18,11 +21,24 @@ const Mode = Object.freeze({
     "MINIMIZE_WHEN_UNFOCUSED": "minimize-when-unfocused",
     "SWITCH_BACK_WHEN_FOCUSED": "switch-back-when-focused",
     "MOVE_WINDOW_TO_ACTIVE_WORKSPACE": "move-window-to-active-workspace",
-    "CENTER_MOUSE_TO_FOCUSED_WINDOW": "center-mouse-to-focused-window"
+    "CENTER_MOUSE_TO_FOCUSED_WINDOW": "center-mouse-to-focused-window",
+    "REGISTER": "register", // register current window to be re-raised by Mode.RAISE
+    "RAISE": "raise", // raise the windows previously registered by Mode.REGISTER
+    "RAISE_OR_REGISTER": "raise-or-register" // if nothing registered yet, register current
 })
 
+/**
+ * Registered windows to be raised
+ * @type {{}}
+ */
+const register = []
 
-const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
+
+/**
+ * Binding based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
+ * @type {Lang.Class}
+ */
+const KeyManager = new Lang.Class({
     Name: 'MyKeyManager',
 
     _init: function() {
@@ -73,8 +89,7 @@ const KeyManager = new Lang.Class({ // based on https://superuser.com/questions/
 });
 
 
-const Controller = new Lang.Class({ // based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
-    Name: 'MyController',
+class Controller {
 
     /**
      * Closure returns the event handler triggered by system on a shortcut
@@ -84,7 +99,9 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
      * @param {dict(mode, parameter)} mode
      * @return function
      */
-    raise: function(command = "", wm_class = "", title = "", modes = null) {
+    raise(command = "", wm_class = "", title = "", modes = null) {
+        let wmFn, titleFn
+
         /**
          * Return appropriate method for s, depending if s is a regex (search) or a string (indexOf)
          * @param s
@@ -97,9 +114,9 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 }]
             } else if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
                 // s is surround with slashes, ex: `/my-program/`, we want to do a regular match when searching
-                return [new RegExp(s.substr(1, s.length - 2)), "search"];
+                return [new RegExp(s.substr(1, s.length - 2)), "search"]
             } else {  // s is a classic string, we just do indexOf match
-                return [s, "indexOf"];
+                return [s, "indexOf"]
             }
         }
 
@@ -119,44 +136,42 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 return true;
             }
             return false;
-        };
+        }
 
-        let wmFn, titleFn;
         [wm_class, wmFn] = _allow_regex(wm_class);
         [title, titleFn] = _allow_regex(title);
 
         return function() {
+            // Shortcut has been triggered
+            let i;
+            if ((i = modes[Mode.RAISE_OR_REGISTER])) {
+                if (!this.registered_window || !focus_window(this.registered_window, modes, true)) {
+                    this.registered_window = get_windows(modes)[0]
+                }
+                return
+            }
+            if ((i = modes[Mode.REGISTER])) {
+                return register[i] = get_windows(modes)[0] // May raise an exception, XXX try with [20]
+            }
+            if ((i = modes[Mode.RAISE])) {
+                return focus_window(register[i], modes, true)
+            }
 
             if (modes[Mode.RUN_ONLY]) {
-                imports.misc.util.spawnCommandLine(command)
-                return
+                return imports.misc.util.spawnCommandLine(command)
             }
 
             /**
              * @type {window}
              */
             let seen = null;
-
-            // Switch windows on active workspace only
-            let active_workspace;
-            const workspace_manager = global.display.get_workspace_manager();
-            if (settings.get_boolean('isolate-workspace') || modes[Mode.ISOLATE_WORKSPACE]) {
-                active_workspace = workspace_manager.get_active_workspace();
-            } else {
-                active_workspace = null;
-            }
-
-            let windows;
-            if (global.display.get_tab_list(0, active_workspace).length === 0) {
-                windows = [];
-            } else if (is_conforming(global.display.get_tab_list(0, active_workspace)[0])) {
-                // current window conforms, let's focus the oldest windows of the group
-                windows = global.display.get_tab_list(0, active_workspace).slice(0).reverse();
-            } else {
-                // current window doesn't conform, let's find the youngest conforming one
-                windows = global.display.get_tab_list(0, active_workspace); // Xglobal.get_window_actors()
-            }
-            for (let window of windows) {
+            const windows = get_windows(modes)
+            // if window conforms, let's focus the oldest windows of the group
+            // (otherwise we find the youngest conforming one)
+            const ordered = (windows.length && is_conforming(windows[0])) ?
+                windows.slice(0).reverse() : windows
+            let window
+            for (window of ordered) {
                 if (is_conforming(window)) {
                     seen = window;
                     if (!seen.has_focus()) {
@@ -167,18 +182,18 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             if (seen) {
                 if (!seen.has_focus()) {
                     log('no focus, go to:' + seen.get_wm_class());
-                    focusWindow(seen, modes);
+                    focus_window(seen, modes);
                 } else {
                     if (settings.get_boolean('minimize-when-unfocused') || modes[Mode.MINIMIZE_WHEN_UNFOCUSED]) {
                         seen.minimize();
                     }
                     if (settings.get_boolean('switch-back-when-focused') || modes[Mode.SWITCH_BACK_WHEN_FOCUSED]) {
-                        const window_monitor = wm.get_monitor();
-                        const window_list = global.display.get_tab_list(0, active_workspace).filter(w => w.get_monitor() === window_monitor && w !== wm);
-                        const lastWindow = window_list[0];
-                        if (lastWindow) {
-                            log('focus, go to:' + lastWindow.get_wm_class());
-                            focusWindow(lastWindow, modes);
+                        const window_monitor = window.get_monitor();
+                        const window_list = windows.filter(w => w.get_monitor() === window_monitor && w !== window)
+                        const last_window = window_list[0];
+                        if (last_window) {
+                            log('focus, go to:' + last_window.get_wm_class());
+                            focus_window(last_window, modes);
                         }
                     }
                 }
@@ -187,9 +202,9 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
                 imports.misc.util.spawnCommandLine(command);
             }
         }
-    },
+    }
 
-    enable: function() {
+    enable() {
         let s;
         try {
             s = Shell.get_file_contents_utf8_sync(confpath);
@@ -217,33 +232,33 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
 
                 // Optional argument quoting in the format: `shortcut[:mode][:mode],[command],[wm_class],[title]`
                 // ', b, c, "d, e,\" " f", g, h' -> ["", "b", "c", "d, e,\" \" f", "g", "h"]
-                let arguments = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
+                let args = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
                     .map(s => s.trim())
                     .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
-                let [shortcut_mode, command, wm_class, title] = arguments;
+                let [shortcut_mode, command, wm_class, title] = args;
 
                 // Split shortcut[:mode][:mode] -> shortcut, modes
                 let [shortcut, ...modes] = shortcut_mode.split(":")
                 shortcut = shortcut.trim()
                 // Store to "shortcut:cmd:launch(2)" → modes = {"cmd": true, "launch": 2}
                 modes = Object.assign({}, ...modes
-                    .map(m => m.match(/(?<key>.*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                    .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
                     .filter(m => m && Object.values(Mode).includes(m.groups.key)) // "launch" must be a valid Mode
                     .map(m => ({[m.groups.key]: m.groups.arg || true}))) // {"launch": true}
 
-                if (arguments.length <= 2) {
-                    // Run only mode, we never try to raise a window
+                if (args.length <= 2) { // Run only mode, we never try to raise a window
                     modes[Mode.RUN_ONLY] = true
                 }
 
+                log("Setum", shortcut_mode, shortcut, command, wm_class, title)
                 this.keyManager.listenFor(shortcut, this.raise(command, wm_class, title, modes))
             } catch (e) {
                 log("Run or raise: can't parse line: " + line, e)
             }
         }
-    },
+    }
 
-    disable: function() {
+    disable() {
         for (let it of this.keyManager.grabbers) {
             try {
                 global.display.ungrab_accelerator(it[1].action)
@@ -254,9 +269,7 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             }
         }
     }
-
-
-});
+}
 
 var app, confpath, confdir, defaultconfpath, settings;
 
@@ -275,12 +288,40 @@ function disable() {
     app.disable();
 }
 
-function focusWindow(wm, modes = null) {
+
+/**
+ * @return {*} Current windows
+ */
+function get_windows(modes) {
+    // Switch windows on active workspace only
+    const workspace_manager = global.display.get_workspace_manager()
+    const active_workspace = (settings.get_boolean('isolate-workspace') || modes[Mode.ISOLATE_WORKSPACE]) ?
+        workspace_manager.get_active_workspace() : null
+
+    // fetch windows
+    return global.display.get_tab_list(0, active_workspace)
+}
+
+/**
+ *
+ * @param wm
+ * @param modes
+ * @param check if true, we focus only if the window is listed amongst current windows
+ * @return {boolean}
+ */
+function focus_window(wm, modes = null, check = false) {
+    if (check
+        && (!wm  // gnome shell reloaded and window IDs changed (even if window might be still there)
+            || !get_windows(modes).filter(w => w.get_id() == wm.get_id()).length // window closed
+        )) {
+        return false
+    }
+
     if (settings.get_boolean('move-window-to-active-workspace') || modes[Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE]) {
         const activeWorkspace = global.workspaceManager.get_active_workspace();
         wm.change_workspace(activeWorkspace);
     }
-    wm.get_workspace().activate_with_focus(wm, true);
+    wm.get_workspace().activate_with_focus(wm, true)
     wm.activate(0);
     if (settings.get_boolean('center-mouse-to-focused-window') || modes[Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW]) {
         const display = Gdk.Display.get_default();//wm.get_display();
@@ -290,4 +331,5 @@ function focusWindow(wm, modes = null) {
         const center = wm.get_center();
         pointer.warp(screen, center.x, center.y);
     }
+    return true
 }
