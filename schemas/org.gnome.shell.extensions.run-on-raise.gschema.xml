@@ -23,8 +23,8 @@
     </key>
     <key type="b" name="isolate-workspace">
       <default>false</default>
-      <summary>Switch windows on active workspace only</summary>
-      <description>Switch windows on active workspace only</description>
+      <summary>Switch windows on the active workspace only</summary>
+      <description>Switch windows on the active workspace only</description>
     </key>
   </schema>
 </schemalist>

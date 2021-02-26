@@ -36,7 +36,7 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 
 ## Modes
 
-Modes are special instructions that let you change the triggered behaviour. 
+Modes are special instructions that let you change the triggered behaviour. Some of them can be turned of globally in the extension preferences (so you do not have to specify them for every single shortcut if you need them everywhere).
 
 * `always-run` Both runs the command and raises a window
     ```
@@ -56,6 +56,11 @@ Modes are special instructions that let you change the triggered behaviour.
     <Super>f,firefox    
     <Super>f:run-only,firefox,
     ```
+* `isolate-workspace` Switch windows on the active workspace only
+* `minimize-when-unfocused` Minimizes your target when unfocusing
+* `switch-back-when-focused` Switch back to the previous window when focused
+* `move-window-to-active-workspace` Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
+* `center-mouse-to-focused-window` After focus move mouse to window center
 
 ## Examples
 

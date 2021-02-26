@@ -13,7 +13,12 @@ function log() {
 
 const Mode = Object.freeze({
     "ALWAYS_RUN": "always-run", // both runs the command and raises a window
-    "RUN_ONLY": "run-only" // just runs the command without cycling windows
+    "RUN_ONLY": "run-only", // just runs the command without cycling windows
+    "ISOLATE_WORKSPACE": "isolate-workspace", // Switch windows on the active workspace only
+    "MINIMIZE_WHEN_UNFOCUSED": "minimize-when-unfocused",
+    "SWITCH_BACK_WHEN_FOCUSED": "switch-back-when-focused",
+    "MOVE_WINDOW_TO_ACTIVE_WORKSPACE": "move-window-to-active-workspace",
+    "CENTER_MOUSE_TO_FOCUSED_WINDOW": "center-mouse-to-focused-window"
 })
 
 
@@ -135,7 +140,7 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             // Switch windows on active workspace only
             let active_workspace;
             const workspace_manager = global.display.get_workspace_manager();
-            if (settings.get_boolean('isolate-workspace')) {
+            if (settings.get_boolean('isolate-workspace') || modes[Mode.ISOLATE_WORKSPACE]) {
                 active_workspace = workspace_manager.get_active_workspace();
             } else {
                 active_workspace = null;
@@ -162,18 +167,18 @@ const Controller = new Lang.Class({ // based on https://superuser.com/questions/
             if (seen) {
                 if (!seen.has_focus()) {
                     log('no focus, go to:' + seen.get_wm_class());
-                    focusWindow(seen);
+                    focusWindow(seen, modes);
                 } else {
-                    if (settings.get_boolean('minimize-when-unfocused')) {
+                    if (settings.get_boolean('minimize-when-unfocused') || modes[Mode.MINIMIZE_WHEN_UNFOCUSED]) {
                         seen.minimize();
                     }
-                    if (settings.get_boolean('switch-back-when-focused')) {
+                    if (settings.get_boolean('switch-back-when-focused') || modes[Mode.SWITCH_BACK_WHEN_FOCUSED]) {
                         const window_monitor = wm.get_monitor();
                         const window_list = global.display.get_tab_list(0, active_workspace).filter(w => w.get_monitor() === window_monitor && w !== wm);
                         const lastWindow = window_list[0];
                         if (lastWindow) {
                             log('focus, go to:' + lastWindow.get_wm_class());
-                            focusWindow(lastWindow);
+                            focusWindow(lastWindow, modes);
                         }
                     }
                 }
@@ -270,14 +275,14 @@ function disable() {
     app.disable();
 }
 
-function focusWindow(wm) {
-    if (settings.get_boolean('move-window-to-active-workspace')) {
+function focusWindow(wm, modes = null) {
+    if (settings.get_boolean('move-window-to-active-workspace') || modes[Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE]) {
         const activeWorkspace = global.workspaceManager.get_active_workspace();
         wm.change_workspace(activeWorkspace);
     }
     wm.get_workspace().activate_with_focus(wm, true);
     wm.activate(0);
-    if (settings.get_boolean('center-mouse-to-focused-window')) {
+    if (settings.get_boolean('center-mouse-to-focused-window') || modes[Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW]) {
         const display = Gdk.Display.get_default();//wm.get_display();
         const deviceManager = display.get_device_manager();
         const pointer = deviceManager.get_client_pointer();
