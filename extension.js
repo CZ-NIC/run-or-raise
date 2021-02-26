@@ -8,7 +8,7 @@ const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
 
 function log() {
-    // global.log.apply(null, arguments); // uncomment when debugging
+     // global.log.apply(null, arguments); // uncomment when debugging
 }
 
 /**
@@ -89,7 +89,8 @@ const KeyManager = new Lang.Class({
 });
 
 
-class Controller {
+class Shortcut {
+
 
     /**
      * Closure returns the event handler triggered by system on a shortcut
@@ -99,110 +100,171 @@ class Controller {
      * @param {dict(mode, parameter)} mode
      * @return function
      */
-    raise(command = "", wm_class = "", title = "", modes = null) {
-        let wmFn, titleFn
+    constructor(command = "", wm_class = "", title = "", modes = null) {
+        this.command = command
+        this.wm_class = wm_class
+        this.title = title
+        this.modes = modes
+        this.wmFn = null
+        this.titleFn = null;
+        [this.wm_class, this.wmFn] = this._allow_regex(wm_class);
+        [this.title, this.titleFn] = this._allow_regex(title);
+    }
 
-        /**
-         * Return appropriate method for s, depending if s is a regex (search) or a string (indexOf)
-         * @param s
-         * @return {(string|string)[]|(RegExp|string)[]} Tuple
-         * @private
-         */
-        function _allow_regex(s) {
-            if (!s) {
-                return [s, () => {
-                }]
-            } else if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
-                // s is surround with slashes, ex: `/my-program/`, we want to do a regular match when searching
-                return [new RegExp(s.substr(1, s.length - 2)), "search"]
-            } else {  // s is a classic string, we just do indexOf match
-                return [s, "indexOf"]
-            }
-        }
-
-        function is_conforming(wm) {
-            const window_class = wm.get_wm_class() || '';
-            const window_title = wm.get_title() || '';
-            // check if the current window is conforming to the search criteria
-            if (wm_class) { // seek by class
-                // wm_class AND if set, title must match
-                if (window_class[wmFn](wm_class) > -1 && (!title || window_title[titleFn](title) > -1)) {
-                    return true;
-                }
-            } else if ((title && window_title[titleFn](title) > -1) || // seek by title
-                (!title && ((window_class.toLowerCase().indexOf(command.toLowerCase()) > -1) || // seek by launch-command in wm_class
-                    (window_title.toLowerCase().indexOf(command.toLowerCase()) > -1))) // seek by launch-command in title
-            ) {
-                return true;
-            }
-            return false;
-        }
-
-        [wm_class, wmFn] = _allow_regex(wm_class);
-        [title, titleFn] = _allow_regex(title);
-
-        return function() {
-            // Shortcut has been triggered
-            let i;
-            if ((i = modes[Mode.RAISE_OR_REGISTER])) {
-                if (!this.registered_window || !focus_window(this.registered_window, modes, true)) {
-                    this.registered_window = get_windows(modes)[0]
-                }
-                return
-            }
-            if ((i = modes[Mode.REGISTER])) {
-                return register[i] = get_windows(modes)[0] // May raise an exception, XXX try with [20]
-            }
-            if ((i = modes[Mode.RAISE])) {
-                return focus_window(register[i], modes, true)
-            }
-
-            if (modes[Mode.RUN_ONLY]) {
-                return imports.misc.util.spawnCommandLine(command)
-            }
-
-            /**
-             * @type {window}
-             */
-            let seen = null;
-            const windows = get_windows(modes)
-            // if window conforms, let's focus the oldest windows of the group
-            // (otherwise we find the youngest conforming one)
-            const ordered = (windows.length && is_conforming(windows[0])) ?
-                windows.slice(0).reverse() : windows
-            let window
-            for (window of ordered) {
-                if (is_conforming(window)) {
-                    seen = window;
-                    if (!seen.has_focus()) {
-                        break; // there might exist another window having the same parameters
-                    }
-                }
-            }
-            if (seen) {
-                if (!seen.has_focus()) {
-                    log('no focus, go to:' + seen.get_wm_class());
-                    focus_window(seen, modes);
-                } else {
-                    if (settings.get_boolean('minimize-when-unfocused') || modes[Mode.MINIMIZE_WHEN_UNFOCUSED]) {
-                        seen.minimize();
-                    }
-                    if (settings.get_boolean('switch-back-when-focused') || modes[Mode.SWITCH_BACK_WHEN_FOCUSED]) {
-                        const window_monitor = window.get_monitor();
-                        const window_list = windows.filter(w => w.get_monitor() === window_monitor && w !== window)
-                        const last_window = window_list[0];
-                        if (last_window) {
-                            log('focus, go to:' + last_window.get_wm_class());
-                            focus_window(last_window, modes);
-                        }
-                    }
-                }
-            }
-            if (!seen || modes[Mode.ALWAYS_RUN]) {
-                imports.misc.util.spawnCommandLine(command);
-            }
+    /**
+     * Return appropriate method for s, depending if s is a regex (search) or a string (indexOf)
+     * @param s
+     * @return {(string|string)[]|(RegExp|string)[]} Tuple
+     * @private
+     */
+    _allow_regex(s) {
+        if (!s) {
+            return [s, () => {
+            }]
+        } else if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
+            // s is surround with slashes, ex: `/my-program/`, we want to do a regular match when searching
+            return [new RegExp(s.substr(1, s.length - 2)), "search"]
+        } else {  // s is a classic string, we just do indexOf match
+            return [s, "indexOf"]
         }
     }
+
+
+    /**
+     * @return {*} Current windows
+     */
+    get_windows() {
+        // Switch windows on active workspace only
+        const workspace_manager = global.display.get_workspace_manager()
+        const active_workspace = (settings.get_boolean('isolate-workspace') || this.modes[Mode.ISOLATE_WORKSPACE]) ?
+            workspace_manager.get_active_workspace() : null
+
+        // fetch windows
+        return global.display.get_tab_list(0, active_workspace)
+    }
+
+
+    is_conforming(wm) {
+        let [command, wm_class, wmFn, title, titleFn] = [this.command, this.wm_class, this.wmFn, this.title, this.titleFn];
+
+        const window_class = wm.get_wm_class() || '';
+        const window_title = wm.get_title() || '';
+        // check if the current window is conforming to the search criteria
+        if (wm_class) { // seek by class
+            // wm_class AND if set, title must match
+            if (window_class[wmFn](wm_class) > -1 && (!title || window_title[titleFn](title) > -1)) {
+                return true;
+            }
+        } else if ((title && window_title[titleFn](title) > -1) || // seek by title
+            (!title && ((window_class.toLowerCase().indexOf(command.toLowerCase()) > -1) || // seek by launch-command in wm_class
+                (window_title.toLowerCase().indexOf(command.toLowerCase()) > -1))) // seek by launch-command in title
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     *
+     * @param window
+     * @param check if true, we focus only if the window is listed amongst current windows
+     * @return {boolean}
+     */
+    focus_window(window, check = false) {
+        const modes = this.modes
+        if (check
+            && (!window  // gnome shell reloaded and window IDs changed (even if window might be still there)
+                || !this.get_windows().filter(w => w.get_id() == window.get_id()).length // window closed
+            )) {
+            return false
+        }
+
+        if (settings.get_boolean('move-window-to-active-workspace') || modes[Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE]) {
+            const activeWorkspace = global.workspaceManager.get_active_workspace();
+            window.change_workspace(activeWorkspace);
+        }
+        window.get_workspace().activate_with_focus(window, true)
+        window.activate(0);
+        if (settings.get_boolean('center-mouse-to-focused-window') || modes[Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW]) {
+            const pointer = Gdk.Display.get_default().get_device_manager().get_client_pointer();
+            const screen = pointer.get_position()[0];
+            const center = window.get_center();
+            pointer.warp(screen, center.x, center.y);
+        }
+        return true
+    }
+
+    /**
+     * Trigger the shortcut
+     * @return {boolean|*}
+     */
+    trigger() {
+        let [command, modes] = [this.command, this.modes];
+        // Shortcut has been triggered
+        let i;
+        if ((i = modes[Mode.RAISE_OR_REGISTER])) {
+            if (!this.registered_window || !this.focus_window(this.registered_window, true)) {
+                this.registered_window = this.get_windows()[0]
+            }
+            return
+        }
+        if ((i = modes[Mode.REGISTER])) {
+            return register[i] = this.get_windows()[0]  // will stay undefined if there is no such window
+            // return register[i] = this.get_windows()[50] // May raise an exception, XXX try with [20]
+        }
+        if ((i = modes[Mode.RAISE])) {
+            return this.focus_window(register[i], true)
+        }
+
+        if (modes[Mode.RUN_ONLY]) {
+            return imports.misc.util.spawnCommandLine(command)
+        }
+
+        /**
+         * @type {window}
+         */
+        let seen = null;
+        const windows = this.get_windows()
+        // if window conforms, let's focus the oldest windows of the group
+        // (otherwise we find the youngest conforming one)
+        const ordered = (windows.length && this.is_conforming(windows[0])) ?
+            windows.slice(0).reverse() : windows
+        let window
+        for (window of ordered) {
+            if (this.is_conforming(window)) {
+                seen = window;
+                if (!seen.has_focus()) {
+                    break; // there might exist another window having the same parameters
+                }
+            }
+        }
+        if (seen) {
+            if (!seen.has_focus()) {
+                log('no focus, go to:' + seen.get_wm_class());
+                this.focus_window(seen);
+            } else {
+                if (settings.get_boolean('minimize-when-unfocused') || modes[Mode.MINIMIZE_WHEN_UNFOCUSED]) {
+                    seen.minimize();
+                }
+                if (settings.get_boolean('switch-back-when-focused') || modes[Mode.SWITCH_BACK_WHEN_FOCUSED]) {
+                    const window_monitor = window.get_monitor();
+                    const window_list = windows.filter(w => w.get_monitor() === window_monitor && w !== window)
+                    const last_window = window_list[0];
+                    if (last_window) {
+                        log('focus, go to:' + last_window.get_wm_class());
+                        this.focus_window(last_window);
+                    }
+                }
+            }
+        }
+        if (!seen || modes[Mode.ALWAYS_RUN]) {
+            imports.misc.util.spawnCommandLine(command);
+        }
+    }
+
+}
+
+class Controller {
 
     enable() {
         let s;
@@ -250,8 +312,9 @@ class Controller {
                     modes[Mode.RUN_ONLY] = true
                 }
 
-                log("Setum", shortcut_mode, shortcut, command, wm_class, title)
-                this.keyManager.listenFor(shortcut, this.raise(command, wm_class, title, modes))
+                this.keyManager.listenFor(shortcut, () => {
+                    new Shortcut(command, wm_class, title, modes).trigger()
+                })
             } catch (e) {
                 log("Run or raise: can't parse line: " + line, e)
             }
@@ -286,50 +349,4 @@ function enable(settings) {
 
 function disable() {
     app.disable();
-}
-
-
-/**
- * @return {*} Current windows
- */
-function get_windows(modes) {
-    // Switch windows on active workspace only
-    const workspace_manager = global.display.get_workspace_manager()
-    const active_workspace = (settings.get_boolean('isolate-workspace') || modes[Mode.ISOLATE_WORKSPACE]) ?
-        workspace_manager.get_active_workspace() : null
-
-    // fetch windows
-    return global.display.get_tab_list(0, active_workspace)
-}
-
-/**
- *
- * @param wm
- * @param modes
- * @param check if true, we focus only if the window is listed amongst current windows
- * @return {boolean}
- */
-function focus_window(wm, modes = null, check = false) {
-    if (check
-        && (!wm  // gnome shell reloaded and window IDs changed (even if window might be still there)
-            || !get_windows(modes).filter(w => w.get_id() == wm.get_id()).length // window closed
-        )) {
-        return false
-    }
-
-    if (settings.get_boolean('move-window-to-active-workspace') || modes[Mode.MOVE_WINDOW_TO_ACTIVE_WORKSPACE]) {
-        const activeWorkspace = global.workspaceManager.get_active_workspace();
-        wm.change_workspace(activeWorkspace);
-    }
-    wm.get_workspace().activate_with_focus(wm, true)
-    wm.activate(0);
-    if (settings.get_boolean('center-mouse-to-focused-window') || modes[Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW]) {
-        const display = Gdk.Display.get_default();//wm.get_display();
-        const deviceManager = display.get_device_manager();
-        const pointer = deviceManager.get_client_pointer();
-        const screen = pointer.get_position()[0];
-        const center = wm.get_center();
-        pointer.warp(screen, center.x, center.y);
-    }
-    return true
 }
