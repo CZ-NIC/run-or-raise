@@ -1,15 +1,124 @@
 const Main = imports.ui.main;
 const Meta = imports.gi.Meta;
-const Lang = imports.lang;
 const Shell = imports.gi.Shell;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
+const {spawnCommandLine, spawn} = imports.misc.util;
 const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
+const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
 
-let app, conf_path, default_conf_path, settings;
+let app, conf_path, default_conf_path, settings
 
 function log() {
-    //global.log.apply(null, arguments); // uncomment when debugging
+    global.log.apply(null, arguments);
+}
+
+/**
+ * Helper class (simulating Python collections.defaultdict)
+ */
+class DefaultMap extends Map {
+    get(key) {
+        if (!this.has(key)) {
+            super.set(key, this.default(key))
+        }
+        return super.get(key);
+    }
+
+    constructor(defaultFunction, entries) {
+        super(entries);
+        this.default = defaultFunction;
+    }
+}
+
+function arraysEqual(arr1, arr2) {
+    if (arr1.length != arr2.length) {
+        return false
+    }
+    for (let i = arr1.length; i--;) {
+        if (arr1[i] !== arr2[i])
+            return false
+    }
+    return true
+}
+
+/**
+ * @type {Action[]} Actions in the array have the same shortcut accelerator
+ */
+class Accelerator extends Array {
+
+    /**
+     * @type {Map}
+     */
+    static grabbers
+
+    constructor(shortcut) {
+        super()
+        /**
+         * ID of the grabber accelerator action.
+         * We may use this ID to ungrab the accelerator.
+         * All action in this ActionGroup have it in common
+         * @type {int?}
+         */
+        this.action_id = null
+        this.name = null
+        this.shortcut = shortcut
+    }
+
+    on_state_changed(state, last_state) {
+        let conforms = this.some(action => action.state_conforms(state))
+
+        if (this.action_id !== null && !conforms) { // the shortcut must no more be consumed
+            this.disconnect()
+        } else if (this.action_id === null && conforms) { // enable new state shortcuts
+            this.connect(state)
+        } else if (this.action_id !== null && conforms
+            && !arraysEqual(this.filter_actions(state), this.filter_actions(last_state))) {
+            // re-do the set of the actions performed on accelerator trigger
+            // ex: Num_Lock state change while having both `<Num_Lock_OFF>i` and `<Num_Lock>i` defined
+            this.disconnect()
+            this.connect(state)
+        }
+    }
+
+    filter_actions(state) {
+        return this.filter(action => action.state_conforms(state))
+    }
+
+    /**
+     * Grab the accelerator, start listening.
+     * @param state Only actions conforming the system keyboard-lock state will be registered
+     */
+    connect(state) {
+        let action = global.display.grab_accelerator(this.shortcut, 0)
+        if (action === Meta.KeyBindingAction.NONE) {
+            log('Unable to grab accelerator', this.shortcut)
+            return false
+        }
+        // Grabbed accelerator action, receive its binding name
+        this.action_id = action
+        this.name = Meta.external_binding_name_for_action(action)
+
+        // Requesting WM to allow binding name
+        Main.wm.allowKeybinding(this.name, Shell.ActionMode.ALL)
+
+        Accelerator.grabbers.set(action, () => this.filter_actions(state).forEach(action => action.trigger())
+        )
+        // log('Successfully set', accelerator, name, action)
+    }
+
+    disconnect() {
+        if (this.action_id === null) {
+            return
+        }
+        try {
+            global.display.ungrab_accelerator(this.action_id)
+            Main.wm.allowKeybinding(this.name, Shell.ActionMode.NONE)
+            this.action_id = null
+        } catch (e) {
+            log("Run or raise: error removing keybinding " + this.name)
+            log(e)
+        }
+    }
 }
 
 /**
@@ -74,65 +183,7 @@ Object.assign(Mode, Object.freeze({
  */
 const register = []
 
-
-/**
- * Binding based on https://superuser.com/questions/471606/gnome-shell-extension-key-binding/1182899#1182899
- * @type {Lang.Class}
- */
-const KeyManager = new Lang.Class({
-    Name: 'MyKeyManager',
-
-    _init: function() {
-        this.grabbers = new Map()
-
-        global.display.connect(
-            'accelerator-activated',
-            Lang.bind(this, function(display, action, deviceId, timestamp) {
-                log('Accelerator Activated: [display={}, action={}, deviceId={}, timestamp={}]',
-                    display, action, deviceId, timestamp)
-                this._onAccelerator(action)
-            }))
-    },
-
-    listenFor: function(accelerator, callback) {
-
-        //log('Trying to listen for hot key', accelerator)
-        let action = global.display.grab_accelerator(accelerator, 0)
-        if (action === Meta.KeyBindingAction.NONE) {
-            log('Unable to grab accelerator [binding={}]', accelerator)
-        } else {
-            // Grabbed accelerator action
-            // Receive binding name for action
-            let name = Meta.external_binding_name_for_action(action)
-
-            // Requesting WM to allow binding name
-            Main.wm.allowKeybinding(name, Shell.ActionMode.ALL)
-
-            this.grabbers.set(action, {
-                name: name,
-                accelerator: accelerator,
-                callback: callback,
-                action: action
-            })
-            //log('Successfully set', accelerator, name, action)
-        }
-
-    },
-
-    _onAccelerator: function(action) {
-        let grabber = this.grabbers.get(action)
-
-        if (grabber) {
-            this.grabbers.get(action).callback()
-        } else {
-            log('No listeners [action={}]', action)
-        }
-    }
-});
-
-
-class Shortcut {
-
+class Action {
 
     /**
      * Single shortcut binding representation
@@ -144,13 +195,25 @@ class Shortcut {
      */
     constructor(command = "", wm_class = "", title = "", mode = null) {
         this.command = command
-        this.wm_class = wm_class
-        this.title = title
+        this.wm_class = wm_class || ""  // may be undefined when user does not set enough parameters
+        this.title = title || ""  // may be undefined when user does not set enough parameters
         this.mode = mode
         this.wmFn = null
         this.titleFn = null;
         [this.wm_class, this.wmFn] = this._allow_regex(wm_class);
         [this.title, this.titleFn] = this._allow_regex(title);
+
+        /**
+         * Is the actions depend on the keyboard-lock state
+         * @type {boolean?>}
+         */
+        this.num_lock = this.caps_lock = this.scroll_lock = null;
+
+        /**
+         * Set by this.set_shortcut
+         * @type {String}
+         */
+        this.shortcut = null;
 
         /**
          * Shortcuts remembers the windows it is bind to
@@ -166,13 +229,10 @@ class Shortcut {
      * @private
      */
     _allow_regex(s) {
-        if (!s) {
-            return [s, () => {
-            }]
-        } else if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
+        if (s.substr(0, 1) === "/" && s.slice(-1) === "/") {
             // s is surround with slashes, ex: `/my-program/`, we want to do a regular match when searching
             return [new RegExp(s.substr(1, s.length - 2)), "search"]
-        } else {  // s is a classic string, we just do indexOf match
+        } else {  // s is a classic string (even empty), we just do indexOf match
             return [s, "indexOf"]
         }
     }
@@ -185,8 +245,8 @@ class Shortcut {
         for (let a of arguments) {
             s += " " + a
         }
-        global.log.apply(null, [s]);
-        imports.misc.util.spawn(["notify-send", s]); // not very reliable
+        log(s)
+        spawn(["notify-send", s]); // not very reliable and not the whole text visible
     }
 
 
@@ -209,8 +269,7 @@ class Shortcut {
         const window_class = window.get_wm_class() || '';
         const window_title = window.get_title() || '';
         // check if the current window is conforming to the search criteria
-        if (wm_class) { // seek by class
-            // wm_class AND if set, title must match
+        if (wm_class) { // seek by class wm_class AND if set, title must match
             if (window_class[wmFn](wm_class) > -1 && (!title || window_title[titleFn](title) > -1)) {
                 return true;
             }
@@ -243,12 +302,12 @@ class Shortcut {
             window.change_workspace(activeWorkspace);
         }
         window.get_workspace().activate_with_focus(window, true)
-        window.activate(0);
+        window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
-            const pointer = Gdk.Display.get_default().get_device_manager().get_client_pointer();
-            const screen = pointer.get_position()[0];
-            const center = window.get_center();
-            pointer.warp(screen, center.x, center.y);
+            const pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
+            const screen = pointer.get_position()[0]
+            const center = window.get_center()
+            pointer.warp(screen, center.x, center.y)
         }
         this.debug("Window activated")
         return true
@@ -304,7 +363,6 @@ class Shortcut {
         }
         if (seen) {
             if (!seen.has_focus()) {
-                log('no focus, go to:' + seen.get_wm_class());
                 this.focus_window(seen);
             } else {
                 if (mode.get(Mode.MINIMIZE_WHEN_UNFOCUSED)) {
@@ -315,7 +373,6 @@ class Shortcut {
                     const window_list = windows.filter(w => w.get_monitor() === window_monitor && w !== window)
                     const last_window = window_list[0];
                     if (last_window) {
-                        log('focus, go to:' + last_window.get_wm_class());
                         this.focus_window(last_window);
                     }
                 }
@@ -330,7 +387,60 @@ class Shortcut {
         if (this.mode.get(Mode.VERBOSE)) {
             this.debug("running:", this.command)
         }
-        return imports.misc.util.spawnCommandLine(this.command);
+        return spawnCommandLine(this.command);
+    }
+
+    /**
+     * Parse non-standard modifiers
+     * @param shortcut
+     * @return {*} Return the shortcut with the non-standard modifiers removed
+     */
+    set_shortcut(shortcut) {
+
+        const included = (sym) => {
+            if (shortcut.includes(`<${sym}>`)) {
+                shortcut = shortcut.replace(`<${sym}>`, "")
+                return true
+            }
+            if (shortcut.includes(`<${sym}_OFF>`)) {
+                shortcut = shortcut.replace(`<${sym}_OFF>`, "")
+                return false
+            }
+            return null
+        }
+
+        this.num_lock = included("Num_Lock")
+        this.caps_lock = included("Caps_Lock")
+        this.scroll_lock = included("Scroll_Lock")
+
+        return this.shortcut = shortcut.trim()
+    }
+
+    /**
+     *
+     * @return {*[]} Array of true/false/null
+     */
+    get_state() {
+        return [this.num_lock, this.caps_lock, this.scroll_lock]
+    }
+
+
+    /**
+     * Is the shortcut valid in the current keyboard state?
+     * @param state_system Array of true/false
+     * @return {boolean} True if all boolean values matches whereas null values in this.get_state() are ignored.
+     */
+    state_conforms(state_system) {
+        const state_action = this.get_state()
+        for (let i = 0; i < state_action.length; i++) {
+            if (state_action[i] === null) {
+                continue
+            }
+            if (state_action[i] !== state_system[i]) {
+                return false
+            }
+        }
+        return true
     }
 }
 
@@ -340,22 +450,45 @@ class Shortcut {
 class Controller {
 
     enable() {
+        /* XX Note Ubuntu 20.10: Using modifiers <Mod3> – <Mod5> worked good for me, <Mod2> (xmodmap shows a numlock)
+        consumed the shortcut when Num_Lock (nothing printed out) but it seems nothing was triggered here.
+
+        Keymap.get_modifier_state() returns an int 2^x where x is 8 positions of xmodmap*/
         let s;
         try {
             s = Shell.get_file_contents_utf8_sync(conf_path);
         } catch (e) {
-            log("Run or raise: can't load confpath" + conf_path + ", creating new file from default");
-            imports.misc.util.spawnCommandLine("mkdir -p " + conf_path.substr(0, conf_path.lastIndexOf("/")));
-            imports.misc.util.spawnCommandLine("cp " + default_conf_path + " " + conf_path);
+            log(`Run or raise: cannot load confpath ${conf_path}, creating new file from default`);
+            spawnCommandLine("mkdir -p " + conf_path.substr(0, conf_path.lastIndexOf("/")));
+            spawnCommandLine("cp " + default_conf_path + " " + conf_path);
             try {
                 s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
             } catch (e) {
-                log("Run or raise: Failed to create default file")
+                log("Run or raise: Failed to create the default file")
                 return;
             }
         }
         let shortcuts = s.split("\n")
-        this.keyManager = new KeyManager()
+        Accelerator.grabbers = new Map()
+
+        // Catch the signal that one of system-defined accelerators has been triggered
+        this.handler_accelerator_activated = global.display.connect(
+            'accelerator-activated',
+            (display, action, deviceId, timestamp) => {
+                try {
+                    Accelerator.grabbers.get(action)()
+                } catch (e) {
+                    log('Run-or-raise> No listeners [action={}]', action)
+                }
+            }
+        )
+
+        /**
+         *
+         * @type {DefaultMap} {shortcut => [action, ...]}
+         */
+        const accelerators = new DefaultMap((shortcut) => new Accelerator(shortcut))
+        this.accelerators = accelerators
 
         // parse shortcut file
         for (let line of shortcuts) {
@@ -372,40 +505,71 @@ class Controller {
                 let [shortcut_mode, command, wm_class, title] = args;
 
                 // Split shortcut[:mode][:mode] -> shortcut, mode
-                let [shortcut, ...modes] = shortcut_mode.split(":")
-                shortcut = shortcut.trim()
+                let [shortcut_raw, ...modes] = shortcut_mode.split(":")
                 // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
                 let mode = new Mode(modes
                     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
                     .filter(m => m) // "launch" must be a valid mode string
                     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
                 )
-
                 if (args.length <= 2) { // Run only mode, we never try to raise a window
                     mode.add(Mode.RUN_ONLY, true)
                 }
+                let action = new Action(command, wm_class, title, mode)
+                action.set_shortcut(shortcut_raw)
 
-                let shortcut_o = new Shortcut(command, wm_class, title, mode)
-                shortcut_o.debug("Registering shortcut", shortcut)
-                this.keyManager.listenFor(shortcut, () => {
-                    shortcut_o.trigger()
-                })
+                accelerators.get(action.shortcut).push(action)
             } catch (e) {
-                log("Run or raise: can't parse line: " + line, e)
+                log("Run or raise: cannot parse line: " + line, e)
             }
         }
+
+        // XX Note: If I register both Hyper and Super (both on the same mod4), the first listener makes it impossible
+        // for the second to register. I may distinguish that they are on the same mode and to put them
+        // on the same index in `actions`.
+        // XX I may manually distinguish Super_L and Super_R if I get the key that was just hit.
+
+        /**
+         * Subset of accelerators that includes only lock-dependent actions. (No action requires to be on always.)
+         * These should be disabled if the keyboard is in a different state to not consume the shortcut.
+         * Ex: Release <Num_Lock_OFF><Super>i when Num_Lock is on
+         *  otherwise `<Super>i` would be consumed by the extension.
+         *  (However, if generic <Super>i exists, the grabber must stay.)
+         */
+        const lock_dependent_accelerators = []
+        accelerators.forEach((actions, shortcut) => {
+                // Launch only generic shortcuts (not lock-dependent) (group having no no-lock shortcuts amongst)
+                if (actions.some(action => action.get_state().every(lock => lock === null))) { // these are always on
+                    actions.connect(this.get_state())
+                } else { // these are lock-dependent, on only if keyboard-locks match
+                    lock_dependent_accelerators.push(actions)
+                }
+            }
+        )
+
+        // De/register accelerators depending on the keyboard state
+        let last_state = []
+        const on_state_changed = () => {
+            const state = this.get_state()
+            if (!arraysEqual(state, last_state)) {
+                lock_dependent_accelerators.forEach(g => g.on_state_changed(state, last_state))
+                last_state = state
+            }
+        };
+
+        this.handler_state_changed = Keymap.connect('state-changed', on_state_changed);
+        on_state_changed()
     }
 
+
     disable() {
-        for (let it of this.keyManager.grabbers) {
-            try {
-                global.display.ungrab_accelerator(it[1].action)
-                Main.wm.allowKeybinding(it[1].name, Shell.ActionMode.NONE)
-            } catch (e) {
-                log("Run or raise: error removing keybinding " + it[1].name)
-                log(e)
-            }
-        }
+        this.accelerators.forEach(actions => actions.disconnect())  // ungrab the accelerators
+        global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
+        Keymap.disconnect(this.handler_state_changed)  // stop listening to keyboard-locks changes
+    }
+
+    get_state() {
+        return [Keymap.get_num_lock_state(), Keymap.get_caps_lock_state(), Keymap.get_scroll_lock_state()]
     }
 }
 

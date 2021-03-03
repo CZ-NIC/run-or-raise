@@ -5,6 +5,7 @@
 - argument allows quoting
 - dropped old non-ES6 support (Debian 9)
 - ability to raise a dynamically registered window
+- keyboard-lock symbols
 
 ## 3.38 (2020-12-02)
 - isolate workspace option

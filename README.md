@@ -4,8 +4,8 @@ https://extensions.gnome.org/extension/1336/run-or-raise/
 
 # About project
 
-I assume the run-or-raise style as the most efficient way of launching window. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it'll get focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by `<Super>+number` shortcuts. But what if you use more programs than nine? What if you don't want the unnecessary taskbar to occupy precious place on your screen?  
-With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old `xbindkeys` and `jumpapp` to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to `shortcuts.conf` file.
+I assume the run-or-raise style as the most efficient way of handling windows. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it will get the focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by <kbd>Super+number</kbd> shortcuts. But what if you use more programs than nine? What if you do not want the unnecessary taskbar to occupy the precious place on the screen?  
+With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old `[xbindkeys](https://wiki.archlinux.org/index.php/Xbindkeys)` and `[jumpapp](https://github.com/mkropat/jumpapp)` to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to the `shortcuts.conf` file.
 
 # Installation
 
@@ -36,6 +36,22 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 * `wm_class`, `title` and `mode` arguments are optional and case-sensitive
 * if neither `wm_class` nor `title`  is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
 * multiple modes can be used together
+* multiple actions may be registered to the same shortcut
+* `shortcut` modifiers
+  * basic
+    * `<Shift>`, `<Alt>`, `<Meta>`, `<Ctrl>` (`<Primary>`), `<Super>` known as <kbd>Win</kbd>, `<Hyper>` 
+    * you may not have all of them on your keyboard by default
+    * `<ISO_Level5_Shift>` (I really recommend mapping this modifier instead of <kbd>Caps Lock</kbd>)
+  * mods
+    * `<Mod1>`, `<Mod2>`, `<Mod3>`, `<Mod4>`, `<Mod5>`
+    * consult `xmodmap` to see the overview of the keys that are mapped to mods
+    * consult `xev` to determine key symbols you have mapped
+    * ex: if the key <kbd>Alt Gr</kbd> corresponds with the key symbol `<ISO_Level3_Shift>` that is bound to **mod5**, you would use `<Mod5>` to create its shortcuts
+    * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/master/src/core/meta-accel-parse.c) source code.
+  * non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
+    * `<Num_Lock>`, `<Num_Lock_OFF>`
+    * `<Caps_Lock>`, `<Caps_Lock_OFF>`
+    * `<Scroll_Lock>`, `<Scroll_Lock_OFF>`   
 
 ## Modes
 
@@ -97,7 +113,7 @@ If nothing registered yet, register the current window. Next time raise it unles
 <Super>o:raise-or-register  
 ```
 ### `verbose`
-Put debug details into system log (possible at `/var/log/syslog`) and popups some of them via `notify-send`
+Put debug details into system log (possible at `/var/log/syslog`) and popups some of them via `notify-send`. (Normally it seems launched commands pipe the output to the *syslog* as well.)
 
 
 ## Examples
@@ -114,16 +130,16 @@ This line cycles any open gnome-terminal OR if not found, launches a new one.
 <Super>r,gnome-terminal,,
 ```
 
-If you want to be sure that your browser won't be focused when you're on the page having "gnome-terminal" in the title, you may want to match running application by `wm_class = Gnome-terminal` on Ubuntu 17.10 or by `wm_class = gnome-terminal-server` on Arch... just check yourself by Alt+F2/lg/Windows everytime wm_class is needed.
+If you want to be sure that your browser won't be focused when you're on the page having "gnome-terminal" in the title, you may want to match running application by `wm_class = Gnome-terminal` on Ubuntu 17.10 or by `wm_class = gnome-terminal-server` on Arch... just check yourself by Alt+F2/lg/Windows everytime `wm_class` is needed.
 
 ```
 <Super>r,gnome-terminal,Gnome-terminal,
 ```
 
 
-You may use **regular expressions** in title or wm_class. Just put the expression between slashes.   
+You may use **regular expressions** in `title` or `wm_class`. Just put the expression between slashes.   
 E.g. to jump to pidgin conversation window you may use this line
-(that mean any windows of wm_class Pidgin, not containing the title Buddy List)"
+(that mean any windows of `wm_class` Pidgin, not containing the title Buddy List)"
 
 ```
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
@@ -144,9 +160,9 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 # Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
-* How to know the wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
+* How to know the `wm_class`? <kbd>Alt+f2</kbd>, lg, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
-* In the case of segfault, check no conflicting key binding (is present)[https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994], then submit an issue.
+* In the case of segfault, check no conflicting key binding [is present](https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994), then submit an issue.
 
 ## Developer guide
 
@@ -154,7 +170,7 @@ How to implement a new mode?
 
 * create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
 * create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
-* put the logics into `Shortcut.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
+* put the logics into `Action.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
   * you may need [gjs.guide](https://gjs.guide/extensions), [gnome-shell source](https://gitlab.gnome.org/GNOME/gnome-shell/-/blob/master/js/) or [gjs-docs.gnome.org](https://gjs-docs.gnome.org)
 * document here in the [README.md](README.md)
 * put a description into [CHANGELOG.md](CHANGELOG.md) file
