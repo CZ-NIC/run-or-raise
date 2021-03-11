@@ -4,7 +4,8 @@
   "shell-version": [
     "3.32",
     "3.32.1",
-    "3.38.1"
+    "3.38.1",
+    "3.38.4"
   ],   
   "url": "https://github.com/CZ-NIC/run-or-raise",
   "uuid": "run-or-raise@edvard.cz", 
