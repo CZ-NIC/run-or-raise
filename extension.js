@@ -4,10 +4,10 @@ const Shell = imports.gi.Shell;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const {spawnCommandLine, spawn} = imports.misc.util;
 const Convenience = Me.imports.convenience;
-const Gdk = imports.gi.Gdk
-const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+const Gdk = imports.gi.Gdk;
+const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default());
 
-let app, conf_path, default_conf_path, settings
+let app, conf_path, default_conf_path, settings;
 
 function log() {
     global.log.apply(null, arguments);
