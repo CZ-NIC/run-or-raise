@@ -49,7 +49,7 @@ class Accelerator extends Array {
     /**
      * @type {Map}
      */
-    static grabbers
+    // static grabbers XX Uncomment when Ubuntu 20.04 Gnome-shell 3.36 dropped.
 
     constructor(shortcut) {
         super()
@@ -507,10 +507,14 @@ class Controller {
                 // Split shortcut[:mode][:mode] -> shortcut, mode
                 let [shortcut_raw, ...modes] = shortcut_mode.split(":")
                 // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
+                // XX Use this statement since Gnome shell 3.38 (named groups do not work in 3.36 yet)
                 let mode = new Mode(modes
-                    .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                //     .filter(m => m) // "launch" must be a valid mode string
+                //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+                    .map(m => m.match(/([^(]*)(\((.*?)\))?/)) // "launch" -> key=launch, arg=undefined
                     .filter(m => m) // "launch" must be a valid mode string
-                    .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+                    .map(m => [m[1], m[3] || true])  // ["launch", true]
                 )
                 if (args.length <= 2) { // Run only mode, we never try to raise a window
                     mode.add(Mode.RUN_ONLY, true)
