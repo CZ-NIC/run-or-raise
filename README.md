@@ -160,7 +160,7 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 # Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
-* How to know the `wm_class`? <kbd>Alt+f2</kbd>, lg, "windows" tab (at least on Ubuntu 17.10)
+* How to know the `wm_class`? <kbd>Alt+f2</kbd>, `lg`, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
 * In the case of segfault, check no conflicting key binding [is present](https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994), then submit an issue.
 

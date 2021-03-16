@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 8 (GNOME 3.38.3)
+## 9 (GNOME 3.38.3)
 - modes
 - argument allows quoting
 - dropped old non-ES6 support (Debian 9)

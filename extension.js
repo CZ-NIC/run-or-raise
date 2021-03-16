@@ -5,7 +5,13 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const {spawnCommandLine, spawn} = imports.misc.util;
 const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
-const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+
+// XX it seems the following function is deprecated.
+// However, it works both in GNOME v3.36.8 on Wayland (#31) and in 3.38.2 on X11
+// Get rid in the future.
+const Keymap = Gdk.Keymap.get_default()
+// const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default()) # works in 3.38.2 on X11
+
 
 let app, conf_path, default_conf_path, settings
 
@@ -304,6 +310,7 @@ class Action {
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
+            // XX #31 may not work in GNOME v3.36.8 on Wayland but nobody reported it
             const pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
             const screen = pointer.get_position()[0]
             const center = window.get_center()
