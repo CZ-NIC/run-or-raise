@@ -51,7 +51,7 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
   * non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
     * `<Num_Lock>`, `<Num_Lock_OFF>`
     * `<Caps_Lock>`, `<Caps_Lock_OFF>`
-    * `<Scroll_Lock>`, `<Scroll_Lock_OFF>`   
+    * `<Scroll_Lock>`, `<Scroll_Lock_OFF>` (`Scroll_Lock` might not be available in Wayland session, hence might be removed in the future)
 
 ## Modes
 

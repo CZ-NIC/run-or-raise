@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 9 (GNOME 3.38.3)
+## 10 (GNOME 3.38.2)
+- better backwards compatibility for both X11 and Wayland
+- `Scroll_Lock` state checking possible deprecation warning
+
+## 9 (2020-03-17, GNOME 3.38.2)
 - modes
 - argument allows quoting
 - dropped old non-ES6 support (Debian 9)

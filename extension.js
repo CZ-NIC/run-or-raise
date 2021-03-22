@@ -5,12 +5,46 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const {spawnCommandLine, spawn} = imports.misc.util;
 const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
+const Clutter = imports.gi.Clutter
 
-// XX it seems the following function is deprecated.
-// However, it works both in GNOME v3.36.8 on Wayland (#31) and in 3.38.2 on X11
-// Get rid in the future.
-const Keymap = Gdk.Keymap.get_default()
-// const Keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default()) # works in 3.38.2 on X11
+let seat, pointer, keymap;
+try {
+    // * `Gdk.Keymap.get_for_display(Gdk.Display.get_default())` works in 3.38.2 on X11 and in 3.38.4 on Wayland
+    //   but fails on 3.38.2 on Wayland
+    // * function get_modifiers_state() is available via keymap
+    keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+    pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
+    if (!keymap || !pointer) {
+        throw "Failed"
+    }
+} catch (e) {
+    try {
+        // * works in Ubuntu 20.10 3.38.2 both on X11 and Wayland
+        // * function get_modifiers_state() is available via seat.get_keyboard()
+        // * has no get_scroll_lock_state, XX in the future check if it has been restored
+        // * XX when dropping support for 3.38-, leave this as the only method to get `keymap` and `pointer`
+        // * `Clutter.get_default_backend().get_default_seat()` returns
+        //  nested Wayland: [object instance wrapper GType:MetaSeatX11 jsobj@0x342c8c422a00 native@0x5630fb671480]
+        //  X11 session [object instance wrapper GType:MetaSeatX11 jsobj@0x39beb1922b50 native@0x563d9d774bd0]
+        //  Wayland: [object instance wrapper GType:MetaSeatNative jsobj@0xa6ae2322a90 native@0x557365fcb9a0]
+        // * `Gdk.Display.get_default()`:
+        //  X11: [object instance wrapper GType:GdkX11Display jsobj@0x230f81c89e20 native@0x563d9dcaf080]
+        //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+        // * `Gdk.Keymap.get_default()`:
+        //  X11: [object instance wrapper GType:GdkX11Keymap jsobj@0x230f81c92550 native@0x563d9d751390]
+        //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+        // * nested Wayland run by dbus-run-session -- gnome-shell --nested --wayland |& grep raise
+        seat = Clutter.get_default_backend().get_default_seat();
+        [keymap, pointer] = [seat.get_keymap(), seat.get_pointer()]
+    } catch (e) {
+        // * fails on Gnome 3.38.4 on Wayland
+        // * works on 3.38.2 on X11
+        // * deprecated since Gnome 3.22
+        // * function get_modifiers_state() is available via keymap
+        keymap = Gdk.Keymap.get_default()
+        pointer = null
+    }
+}
 
 
 let app, conf_path, default_conf_path, settings
@@ -310,11 +344,14 @@ class Action {
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
-            // XX #31 may not work in GNOME v3.36.8 on Wayland but nobody reported it
-            const pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
-            const screen = pointer.get_position()[0]
-            const center = window.get_center()
-            pointer.warp(screen, center.x, center.y)
+            if (pointer) {
+                const screen = pointer.get_position()[0]
+                const center = window.get_center()
+                pointer.warp(screen, center.x, center.y)
+            } else {
+                // XX I suspect this does not work in an older gnome shell, get rid with Gnome 3.36 support
+                log("Cannot get system pointer, please report with the `gnome-shell --version`.")
+            }
         }
         this.debug("Window activated")
         return true
@@ -516,9 +553,9 @@ class Controller {
                 // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
                 // XX Use this statement since Gnome shell 3.38 (named groups do not work in 3.36 yet)
                 let mode = new Mode(modes
-                //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
-                //     .filter(m => m) // "launch" must be a valid mode string
-                //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+                    //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                    //     .filter(m => m) // "launch" must be a valid mode string
+                    //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
                     .map(m => m.match(/([^(]*)(\((.*?)\))?/)) // "launch" -> key=launch, arg=undefined
                     .filter(m => m) // "launch" must be a valid mode string
                     .map(m => [m[1], m[3] || true])  // ["launch", true]
@@ -568,7 +605,7 @@ class Controller {
             }
         };
 
-        this.handler_state_changed = Keymap.connect('state-changed', on_state_changed);
+        this.handler_state_changed = keymap.connect('state-changed', on_state_changed);
         on_state_changed()
     }
 
@@ -576,11 +613,16 @@ class Controller {
     disable() {
         this.accelerators.forEach(actions => actions.disconnect())  // ungrab the accelerators
         global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
-        Keymap.disconnect(this.handler_state_changed)  // stop listening to keyboard-locks changes
+        keymap.disconnect(this.handler_state_changed)  // stop listening to keyboard-locks changes
     }
 
     get_state() {
-        return [Keymap.get_num_lock_state(), Keymap.get_caps_lock_state(), Keymap.get_scroll_lock_state()]
+        // XX scroll_lock_state is not available via Clutter in Gnome 3.36.
+        // It was available via Gdm which does not work in Wayland.
+        // Check in the further version of Gnome whether scroll_lock state was restored or get rid of it.
+        return [keymap.get_num_lock_state(), keymap.get_caps_lock_state(),
+            keymap.get_scroll_lock_state ? keymap.get_scroll_lock_state() : 0
+        ]
     }
 }
 
