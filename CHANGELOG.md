@@ -1,10 +1,13 @@
 # CHANGELOG
 
-## 10 (GNOME 3.38.2)
+## 11 (2021-04-30, Gnome 40)
+- added shell version 40 support #33
+
+## 10 (2021-03-22, Gnome 3.38.2)
 - better backwards compatibility for both X11 and Wayland
 - `Scroll_Lock` state checking possible deprecation warning
 
-## 9 (2020-03-17, GNOME 3.38.2)
+## 9 (2021-03-17, Gnome 3.38.2)
 - modes
 - argument allows quoting
 - dropped old non-ES6 support (Debian 9)
@@ -17,7 +20,7 @@
 
 ## 3.32 (2019-12-12)
 - grab accelerator parameter change
-- custom config dir to prevent GNOME wipe the shortcuts.conf on upgrade #19 
+- custom config dir to prevent Gnome wipe the shortcuts.conf on upgrade #19 
 
 ## 3.26 (2019-04-30)
 Everything working as expected.
