@@ -1,7 +1,7 @@
 # CHANGELOG
 
-## 11 (2021-04-30, Gnome 40)
-- added shell version 40 support #33
+## 12 (2021-04-30, Gnome 40)
+- added shell version 40 support #33 #34
 
 ## 10 (2021-03-22, Gnome 3.38.2)
 - better backwards compatibility for both X11 and Wayland
