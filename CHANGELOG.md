@@ -2,6 +2,7 @@
 
 ## 13
 - added shell version 41 support
+- added support for starting applications from .desktop files
 
 ## 12 (2021-04-30, Gnome 40)
 - added shell version 40 support #33 #34
