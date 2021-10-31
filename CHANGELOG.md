@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 13
+- added shell version 41 support
+
 ## 12 (2021-04-30, Gnome 40)
 - added shell version 40 support #33 #34
 

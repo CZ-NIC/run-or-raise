@@ -7,8 +7,9 @@
     "3.36",
     "3.38.1",
     "40",
-    "40.1"
-  ],   
+    "40.1",
+    "41"
+  ],
   "url": "https://github.com/CZ-NIC/run-or-raise",
   "uuid": "run-or-raise@edvard.cz", 
   "settings-schema":  "org.gnome.shell.extensions.run-or-raise",
