@@ -34,6 +34,9 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 `shortcut[:mode],[command],[wm_class],[title]`
 
 * `wm_class`, `title` and `mode` arguments are optional and case-sensitive
+* `command` can be either a commandline to launch, or the name of an application's .desktop file.
+If `command` is a commandline, this extension will spawn a new process using that commandline. If `command` points to a .desktop
+file, this extension will activate the application from that .desktop file.
 * if neither `wm_class` nor `title`  is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
 * multiple modes can be used together
 * multiple actions may be registered to the same shortcut
@@ -122,6 +125,12 @@ This line cycles any firefox window (matched by "firefox" in the window title) O
 
 ```
 <Super>f,firefox,,
+```
+
+This line starts gnome-terminal using it's .desktop file:
+
+```
+<Super>f,org.gnome.Terminal.desktop,,
 ```
 
 This line cycles any open gnome-terminal OR if not found, launches a new one.

@@ -431,6 +431,10 @@ class Action {
         if (this.mode.get(Mode.VERBOSE)) {
             this.debug("running:", this.command)
         }
+        const app = Shell.AppSystem.get_default().lookup_app(this.command);
+        if (app !== null) {
+            return app.activate();
+        }
         return spawnCommandLine(this.command);
     }
 
