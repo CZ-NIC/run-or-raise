@@ -2,10 +2,21 @@ const Main = imports.ui.main;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
-const {spawnCommandLine, spawn} = imports.misc.util;
+const { spawnCommandLine, spawn } = imports.misc.util;
 const Convenience = Me.imports.convenience;
 const Gdk = imports.gi.Gdk
 const Clutter = imports.gi.Clutter
+const { Gio } = imports.gi;
+
+const ROR_DBUS_IFACE = `
+<node>
+    <interface name="org.gnome.Shell.Extensions.RunOrRaise">
+        <method name="SendShortcut">
+            <arg type="s" direction="in" name="shortcut"/>
+        </method>
+    </interface>
+</node>`;
+
 
 let seat, pointer, keymap;
 try {
@@ -497,11 +508,63 @@ class Action {
  */
 class Controller {
 
+    SendShortcut(shortcut) {
+        log('Run-or-raise> SendShortcut dbus ', shortcut);
+        let s = Shell.get_file_contents_utf8_sync(conf_path);
+        let shortcuts = s.split("\n")
+        Accelerator.grabbers = new Map()
+        for (let line of shortcuts) {
+            try {
+                if (line[0] === "#" || line.trim() === "") {  // skip empty lines and comments
+                    continue;
+                }
+
+                // Optional argument quoting in the format: `shortcut[:mode][:mode],[command],[wm_class],[title]`
+                // ', b, c, "d, e,\" " f", g, h' -> ["", "b", "c", "d, e,\" \" f", "g", "h"]
+                let args = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
+                    .map(s => s.trim())
+                    .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
+                let [shortcut_mode, command, wm_class, title] = args;
+
+                // Split shortcut[:mode][:mode] -> shortcut, mode
+                let [shortcut_raw, ...modes] = shortcut_mode.split(":")
+                if (shortcut_raw != shortcut) {
+                    log("Send or Raise: no match ", shortcut_raw, shortcut);
+                    continue;
+                };
+
+
+                // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
+                // XX Use this statement since Gnome shell 3.38 (named groups do not work in 3.36 yet)
+                let mode = new Mode(modes
+                    //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                    //     .filter(m => m) // "launch" must be a valid mode string
+                    //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+                    .map(m => m.match(/([^(]*)(\((.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+                    .filter(m => m) // "launch" must be a valid mode string
+                    .map(m => [m[1], m[3] || true])  // ["launch", true]
+                )
+                if (args.length <= 2) { // Run only mode, we never try to raise a window
+                    mode.add(Mode.RUN_ONLY, true)
+                }
+                let action = new Action(command, wm_class, title, mode)
+                action.trigger();
+
+            } catch (e) {
+                log("Run or raise: cannot parse line: " + line, e)
+            }
+        }
+
+    };
+
     enable() {
         /* XX Note Ubuntu 20.10: Using modifiers <Mod3> – <Mod5> worked good for me, <Mod2> (xmodmap shows a numlock)
         consumed the shortcut when Num_Lock (nothing printed out) but it seems nothing was triggered here.
 
         Keymap.get_modifier_state() returns an int 2^x where x is 8 positions of xmodmap*/
+        this._dbus = Gio.DBusExportedObject.wrapJSObject(ROR_DBUS_IFACE, this);
+        this._dbus.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/RunOrRaise');
+
         let s;
         try {
             s = Shell.get_file_contents_utf8_sync(conf_path);
@@ -567,6 +630,7 @@ class Controller {
                 if (args.length <= 2) { // Run only mode, we never try to raise a window
                     mode.add(Mode.RUN_ONLY, true)
                 }
+                log("Run or Raise: ", command, wm_class, title, mode, shortcut_raw)
                 let action = new Action(command, wm_class, title, mode)
                 action.set_shortcut(shortcut_raw)
 
@@ -590,13 +654,13 @@ class Controller {
          */
         const lock_dependent_accelerators = []
         accelerators.forEach((actions, shortcut) => {
-                // Launch only generic shortcuts (not lock-dependent) (group having no no-lock shortcuts amongst)
-                if (actions.some(action => action.get_state().every(lock => lock === null))) { // these are always on
-                    actions.connect(this.get_state())
-                } else { // these are lock-dependent, on only if keyboard-locks match
-                    lock_dependent_accelerators.push(actions)
-                }
+            // Launch only generic shortcuts (not lock-dependent) (group having no no-lock shortcuts amongst)
+            if (actions.some(action => action.get_state().every(lock => lock === null))) { // these are always on
+                actions.connect(this.get_state())
+            } else { // these are lock-dependent, on only if keyboard-locks match
+                lock_dependent_accelerators.push(actions)
             }
+        }
         )
 
         // De/register accelerators depending on the keyboard state
@@ -625,7 +689,7 @@ class Controller {
         // It was available via Gdm which does not work in Wayland.
         // Check in the further version of Gnome whether scroll_lock state was restored or get rid of it.
         return [keymap.get_num_lock_state(), keymap.get_caps_lock_state(),
-            keymap.get_scroll_lock_state ? keymap.get_scroll_lock_state() : 0
+        keymap.get_scroll_lock_state ? keymap.get_scroll_lock_state() : 0
         ]
     }
 }
