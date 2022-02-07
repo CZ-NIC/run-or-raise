@@ -286,7 +286,7 @@ class Action {
             s += " " + a
         }
         log(s)
-        spawn(["notify-send", s]); // not very reliable and not the whole text visible
+        Main.notify(s)
     }
 
 
@@ -635,14 +635,16 @@ class Controller {
 function init(options) {
     conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
     default_conf_path = options.path + "/shortcuts.default";
-    app = new Controller();
-    settings = Convenience.getSettings();
 }
 
 function enable(settings) {
+    app = new Controller();
+    settings = Convenience.getSettings();
     app.enable();
 }
 
 function disable() {
     app.disable();
+    app = null;
+    settings = null;
 }

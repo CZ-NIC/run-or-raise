@@ -1,5 +1,6 @@
 {  
   "description": "Launch or focus the window or define custom shortcuts in a text file", 
+  "disable-extension-version-validation": true,
   "name": "Run or raise", 
   "shell-version": [
     "3.32",
@@ -7,11 +8,10 @@
     "3.36",
     "3.38.1",
     "40",
-    "40.1",
     "41"
   ],
   "url": "https://github.com/CZ-NIC/run-or-raise",
   "uuid": "run-or-raise@edvard.cz", 
   "settings-schema":  "org.gnome.shell.extensions.run-or-raise",
-  "version": 12
+  "version": 16
 }
