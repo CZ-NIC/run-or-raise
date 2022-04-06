@@ -1,56 +1,17 @@
 const Main = imports.ui.main;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const {spawnCommandLine, spawn} = imports.misc.util;
-const Convenience = Me.imports.convenience;
+const ExtensionUtils = imports.misc.extensionUtils
+const {spawnCommandLine} = imports.misc.util
 const Gdk = imports.gi.Gdk
+const Gio = imports.gi.Gio
 const Clutter = imports.gi.Clutter
 
-let seat, pointer, keymap;
-try {
-    // * `Gdk.Keymap.get_for_display(Gdk.Display.get_default())` works in 3.38.2 on X11 and in 3.38.4 on Wayland
-    //   but fails on 3.38.2 on Wayland
-    // * function get_modifiers_state() is available via keymap
-    keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
-    pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
-    if (!keymap || !pointer) {
-        throw "Failed"
-    }
-} catch (e) {
-    try {
-        // * works in Ubuntu 20.10 3.38.2 both on X11 and Wayland
-        // * function get_modifiers_state() is available via seat.get_keyboard()
-        // * has no get_scroll_lock_state, XX in the future check if it has been restored
-        // * XX when dropping support for 3.38-, leave this as the only method to get `keymap` and `pointer`
-        // * `Clutter.get_default_backend().get_default_seat()` returns
-        //  nested Wayland: [object instance wrapper GType:MetaSeatX11 jsobj@0x342c8c422a00 native@0x5630fb671480]
-        //  X11 session [object instance wrapper GType:MetaSeatX11 jsobj@0x39beb1922b50 native@0x563d9d774bd0]
-        //  Wayland: [object instance wrapper GType:MetaSeatNative jsobj@0xa6ae2322a90 native@0x557365fcb9a0]
-        // * `Gdk.Display.get_default()`:
-        //  X11: [object instance wrapper GType:GdkX11Display jsobj@0x230f81c89e20 native@0x563d9dcaf080]
-        //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
-        // * `Gdk.Keymap.get_default()`:
-        //  X11: [object instance wrapper GType:GdkX11Keymap jsobj@0x230f81c92550 native@0x563d9d751390]
-        //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
-        // * nested Wayland run by dbus-run-session -- gnome-shell --nested --wayland |& grep raise
-        seat = Clutter.get_default_backend().get_default_seat();
-        [keymap, pointer] = [seat.get_keymap(), seat.get_pointer()]
-    } catch (e) {
-        // * fails on Gnome 3.38.4 on Wayland
-        // * works on 3.38.2 on X11
-        // * deprecated since Gnome 3.22
-        // * function get_modifiers_state() is available via keymap
-        keymap = Gdk.Keymap.get_default()
-        pointer = null
-    }
-}
 
-
-let app, conf_path, default_conf_path, settings
+let seat, pointer, keymap, app, conf_path, default_conf_path, settings
 
 function log() {
-    global.log.apply(null, arguments);
+    global.log.apply(null, arguments)
 }
 
 /**
@@ -155,7 +116,7 @@ class Accelerator extends Array {
             Main.wm.allowKeybinding(this.name, Shell.ActionMode.NONE)
             this.action_id = null
         } catch (e) {
-            log("Run or raise: error removing keybinding " + this.name)
+            log("Run or raise> error removing keybinding " + this.name)
             log(e)
         }
     }
@@ -344,13 +305,13 @@ class Action {
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
-            if (pointer) {
+            try {
                 const screen = pointer.get_position()[0]
                 const center = window.get_center()
                 pointer.warp(screen, center.x, center.y)
-            } else {
+            } catch (e) {
                 // XX I suspect this does not work in an older gnome shell, get rid with Gnome 3.36 support
-                log("Cannot get system pointer, please report with the `gnome-shell --version`.")
+                log("Run or raise> Cannot get system pointer, please report with the `gnome-shell --version`.")
             }
         }
         this.debug("Window activated")
@@ -506,13 +467,23 @@ class Controller {
         try {
             s = Shell.get_file_contents_utf8_sync(conf_path);
         } catch (e) {
-            log(`Run or raise: cannot load confpath ${conf_path}, creating new file from default`);
-            spawnCommandLine("mkdir -p " + conf_path.substr(0, conf_path.lastIndexOf("/")));
-            spawnCommandLine("cp " + default_conf_path + " " + conf_path);
+            log(`Run or raise> cannot load confpath ${conf_path}, creating new file from default`);
+            // instead of using `mkdir -p` and `cp`,
+            // the GNOME team required me to use this dark and cumbersome methods to copy a single file
+            const target_dir = Gio.File.new_for_path(conf_path.substr(0, conf_path.lastIndexOf("/")))
+            const target = Gio.File.new_for_path(conf_path)
+            const source = Gio.File.new_for_path(default_conf_path)
+            try {
+                target_dir.make_directory_with_parents(null)
+            } catch (e) {
+                ; // directory already exists
+            }
+            source.copy(target, null, null, null)
+
             try {
                 s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
             } catch (e) {
-                log("Run or raise: Failed to create the default file")
+                log("Run or raise> Failed to create the default file")
                 return;
             }
         }
@@ -572,7 +543,7 @@ class Controller {
 
                 accelerators.get(action.shortcut).push(action)
             } catch (e) {
-                log("Run or raise: cannot parse line: " + line, e)
+                log("Run or raise> cannot parse line: " + line, e)
             }
         }
 
@@ -631,20 +602,56 @@ class Controller {
 }
 
 // Classes launched by gnome-shell
-
 function init(options) {
     conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
     default_conf_path = options.path + "/shortcuts.default";
 }
 
-function enable(settings) {
-    app = new Controller();
-    settings = Convenience.getSettings();
-    app.enable();
+function enable() {
+    try {
+        // * `Gdk.Keymap.get_for_display(Gdk.Display.get_default())` works in 3.38.2 on X11 and in 3.38.4 on Wayland
+        //   but fails on 3.38.2 on Wayland
+        // * function get_modifiers_state() is available via keymap
+        keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+        pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
+        if (!keymap || !pointer) {
+            throw "Failed" // try other methods
+        }
+    } catch (e) {
+        try {
+            // * works in Ubuntu 20.10 3.38.2 both on X11 and Wayland
+            // * function get_modifiers_state() is available via seat.get_keyboard()
+            // * has no get_scroll_lock_state, XX in the future check if it has been restored
+            // * XX when dropping support for 3.38-, leave this as the only method to get `keymap` and `pointer`
+            // * `Clutter.get_default_backend().get_default_seat()` returns
+            //  nested Wayland: [object instance wrapper GType:MetaSeatX11 jsobj@0x342c8c422a00 native@0x5630fb671480]
+            //  X11 session [object instance wrapper GType:MetaSeatX11 jsobj@0x39beb1922b50 native@0x563d9d774bd0]
+            //  Wayland: [object instance wrapper GType:MetaSeatNative jsobj@0xa6ae2322a90 native@0x557365fcb9a0]
+            // * `Gdk.Display.get_default()`:
+            //  X11: [object instance wrapper GType:GdkX11Display jsobj@0x230f81c89e20 native@0x563d9dcaf080]
+            //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+            // * `Gdk.Keymap.get_default()`:
+            //  X11: [object instance wrapper GType:GdkX11Keymap jsobj@0x230f81c92550 native@0x563d9d751390]
+            //  Wayland: gdk_keymap_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+            // * nested Wayland run by dbus-run-session -- gnome-shell --nested --wayland |& grep raise
+            seat = Clutter.get_default_backend().get_default_seat();
+            [keymap, pointer] = [seat.get_keymap(), seat.get_pointer()]
+        } catch (e) {
+            // * fails on Gnome 3.38.4 on Wayland
+            // * works on 3.38.2 on X11
+            // * deprecated since Gnome 3.22
+            // * function get_modifiers_state() is available via keymap
+            keymap = Gdk.Keymap.get_default()
+            pointer = null
+        }
+    }
+
+    app = new Controller()
+    settings = ExtensionUtils.getSettings()
+    app.enable()
 }
 
 function disable() {
     app.disable();
-    app = null;
-    settings = null;
+    pointer = keymap = seat = app = settings = null
 }
