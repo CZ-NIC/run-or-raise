@@ -33,32 +33,8 @@ const GLib = imports.gi.GLib;
 const ExtensionUtils = imports.misc.extensionUtils;
 
 function getSchemaData(schema) {
-    let extension = ExtensionUtils.getCurrentExtension();
-
-    schema = schema || extension.metadata['settings-schema'];
-
-    const GioSSS = Gio.SettingsSchemaSource;
-
-    // check if this extension was built with "make zip-file", and thus
-    // has the schema files in a subfolder
-    // otherwise assume that extension has been installed in the
-    // same prefix as gnome-shell (and therefore schemas are available
-    // in the standard folders)
-    let schemaDir = extension.dir.get_child('schemas');
-    let schemaSource;
-    if (schemaDir.query_exists(null))
-        schemaSource = GioSSS.new_from_directory(schemaDir.get_path(),
-                                                 GioSSS.get_default(),
-                                                 false);
-    else
-        schemaSource = GioSSS.get_default();
-
-    let schemaObj = schemaSource.lookup(schema, true);
-    if (!schemaObj)
-        throw new Error('Schema ' + schema + ' could not be found for extension '
-                        + extension.metadata.uuid + '. Please check your installation.');
-
-    const Settings = new Gio.Settings({ settings_schema: schemaObj });
+    const Settings = ExtensionUtils.getSettings()
+    const schemaObj = Settings["settings_schema"]
     const basicTypes = ["b", "y", "n", "q", "i", "u", "x", "t", "h", "d", "s", "o", "g", "?"].map(function(type){return {type: type, vt :  new GLib.VariantType(type)}});
     const allKeys = schemaObj.list_keys().map(function(keyName) {
 	    const key = schemaObj.get_key(keyName);
