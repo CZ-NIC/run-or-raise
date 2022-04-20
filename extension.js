@@ -102,7 +102,14 @@ class Accelerator extends Array {
         // Requesting WM to allow binding name
         Main.wm.allowKeybinding(this.name, Shell.ActionMode.ALL)
 
-        Accelerator.grabbers.set(action, () => this.filter_actions(state).forEach(action => action.trigger())
+        Accelerator.grabbers.set(action, () => this.filter_actions(state).forEach(action => {
+                    try {
+                        action.trigger()
+                    } catch (e) {
+                        display(`${this.shortcut} ${e}`)
+                    }
+                }
+            )
         )
     }
 
@@ -302,14 +309,8 @@ class Action {
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
-            try {
-                const screen = pointer.get_position()[0]
-                const center = window.get_center()
-                pointer.warp(screen, center.x, center.y)
-            } catch (e) {
-                // XX I suspect this does not work in an older gnome shell, get rid with Gnome 3.36 support
-                display("Cannot get system pointer, please report with the `gnome-shell --version`.")
-            }
+            const {x, y, width, height} = window.get_frame_rect()
+            seat.warp_pointer(x + width / 2, y + height / 2)
         }
         this.debug("Window activated")
         return true
@@ -490,11 +491,11 @@ class Controller {
         // Catch the signal that one of system-defined accelerators has been triggered
         this.handler_accelerator_activated = global.display.connect(
             'accelerator-activated',
-            (display, action, deviceId, timestamp) => {
+            (display_, action, deviceId, timestamp) => {
                 try {
                     Accelerator.grabbers.get(action)()
                 } catch (e) {
-                    display('No listeners [action={}]', action)
+                    display(`No listeners [action=${action}]`)
                 }
             }
         )
@@ -605,16 +606,15 @@ function init(options) {
 }
 
 function enable() {
+    seat = Clutter.get_default_backend().get_default_seat()
     if (Meta.is_wayland_compositor()) {
-        seat = Clutter.get_default_backend().get_default_seat();
-        [keymap, pointer] = [seat.get_keymap(), seat.get_pointer()]
+        keymap = seat.get_keymap()
     } else {
         // We should not use Gdk in the extension, Clutter should be used instead.
         // Although it works, I've spotted its error (at least on Ubuntu 21.10, Gnome Shell 40.5, X11):
         // Usecase: Having the Num Lock on, restart shell -> keymap.get_num_lock_state() returns false unless manually
         // changed. Hence, we stay with Gdk for the moment.
         keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
-        pointer = Gdk.Display.get_default().get_default_seat().get_pointer()
     }
     app = new Controller()
     settings = ExtensionUtils.getSettings()

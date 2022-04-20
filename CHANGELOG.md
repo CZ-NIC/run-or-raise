@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 24
+- center mouse fix #45
+
 ## 13
 - added shell version 41 support
 - added support for starting applications from .desktop files
