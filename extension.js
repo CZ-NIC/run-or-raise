@@ -491,13 +491,7 @@ class Controller {
         // Catch the signal that one of system-defined accelerators has been triggered
         this.handler_accelerator_activated = global.display.connect(
             'accelerator-activated',
-            (display_, action, deviceId, timestamp) => {
-                try {
-                    Accelerator.grabbers.get(action)()
-                } catch (e) {
-                    display(`No listeners [action=${action}]`)
-                }
-            }
+            (display_, action, deviceId, timestamp) => Accelerator.grabbers.get(action)() // ex: Fn+volume_up raises TypeError not a function
         )
 
         /**
