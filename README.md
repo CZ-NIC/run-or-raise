@@ -5,7 +5,7 @@ https://extensions.gnome.org/extension/1336/run-or-raise/
 # About project
 
 I assume the run-or-raise style as the most efficient way of handling windows. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it will get the focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by <kbd>Super+number</kbd> shortcuts. But what if you use more programs than nine? What if you do not want the unnecessary taskbar to occupy the precious place on the screen?  
-With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old `[xbindkeys](https://wiki.archlinux.org/index.php/Xbindkeys)` and `[jumpapp](https://github.com/mkropat/jumpapp)` to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to the `shortcuts.conf` file.
+With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old [`xbindkeys`](https://wiki.archlinux.org/index.php/Xbindkeys) and [`jumpapp`](https://github.com/mkropat/jumpapp) to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to the `shortcuts.conf` file.
 
 # Installation
 
