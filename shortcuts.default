@@ -6,13 +6,13 @@
 #        * wm_class and title are optional and case sensitive
 #        * if none is set, lowercased launch-command is compared with lowercased windows wm_classes and titles
 #
-# 2. Run only form: shortcut,calculate 
+# 2. Run only form: shortcut,calculate
 #
 #
 # =================
 # Run or raise form
 # =================
-# 
+#
 #
 # This line cycles any firefox window (matched by "firefox" in the window title) OR if not found, launches new firefox instance.
 <Super>f,firefox,,
@@ -22,7 +22,7 @@
 
 
 # You may use regular expression in title or wm_class.
-# Just put the regular expression between slashes. 
+# Just put the regular expression between slashes.
 # E.g. to jump to pidgin conversation window you may use this line
 # (that means any windows of wm_class Pidgin, not containing the title Buddy List)"
 <Super>KP_1,pidgin,Pidgin,/^((?!Buddy List).)*$/
