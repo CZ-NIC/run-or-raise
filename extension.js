@@ -52,14 +52,14 @@ class App {
             return
         }
         /**
-         * @type {Map<Number, Function>} [Accelerator.action_id] => callback to execute all actions
+         * @type {Map<Number, Accelerator>} [accelerator.action_id] => accelerator
          */
-        this.grabbers = new Map()
+        this.accelerator_map = new Map()
 
         // Catch the signal that one of system-defined accelerators has been triggered
         this.handler_accelerator_activated = global.display.connect(
             'accelerator-activated',
-            (display_, action, deviceId, timestamp) => this.grabbers.get(action)() // ex: Fn+volume_up raises TypeError not a function
+            (display_, action, deviceId, timestamp) => this.accelerator_map.get(action).trigger() // ex: Fn+volume_up raises TypeError not a function
         )
 
         /**
