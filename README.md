@@ -4,7 +4,7 @@ https://extensions.gnome.org/extension/1336/run-or-raise/
 
 # About project
 
-I assume the run-or-raise style as the most efficient way of handling windows. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it will get the focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by <kbd>Super+number</kbd> shortcuts. But what if you use more programs than nine? What if you do not want the unnecessary taskbar to occupy the precious place on the screen?  
+I assume the run-or-raise style as the most efficient way of handling windows. No more searching for your favourite program in a long menu, no more clicking on the icons. If the program already runs it will get the focus, else we launch it. Several years ago, OS creators finally realized that efficiency and let the users run-or-raise programs on the taskbar or dock by <kbd>Super+number</kbd> shortcuts. But what if you use more programs than nine? What if you do not want the unnecessary taskbar to occupy the precious place on the screen?
 With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use good old [`xbindkeys`](https://wiki.archlinux.org/index.php/Xbindkeys) and [`jumpapp`](https://github.com/mkropat/jumpapp) to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to the `shortcuts.conf` file.
 
 # Installation
@@ -31,18 +31,14 @@ Note that if an argument should contain a comma, use double quotes around.
 
 When you trigger a shortcut it lets you cycle amongst open instances of the application or if not found, launches a new instance. The file consists of shortcuts in the following form:
 
-`shortcut[:mode],[command],[wm_class],[title]`
+`shortcut[ char][:mode],command,[wm_class],[title]`
 
-* `wm_class`, `title` and `mode` arguments are optional and case-sensitive
-* `command` can be either a commandline to launch, or the name of an application's .desktop file.
-If `command` is a commandline, this extension will spawn a new process using that commandline. If `command` points to a .desktop
-file, this extension will activate the application from that .desktop file.
-* if neither `wm_class` nor `title`  is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
-* multiple modes can be used together
-* multiple actions may be registered to the same shortcut
+### Shortcut
+
+* multiple actions may be registered to the same shortcut (shortcut appears on multiple lines)
 * `shortcut` modifiers
   * basic
-    * `<Shift>`, `<Alt>`, `<Meta>`, `<Ctrl>` (`<Primary>`), `<Super>` known as <kbd>Win</kbd>, `<Hyper>` 
+    * `<Shift>`, `<Alt>`, `<Meta>`, `<Ctrl>` (`<Primary>`), `<Super>` known as <kbd>Win</kbd>, `<Hyper>`
     * you may not have all of them on your keyboard by default
     * `<ISO_Level5_Shift>` (I really recommend mapping this modifier instead of <kbd>Caps Lock</kbd>)
   * mods
@@ -50,13 +46,31 @@ file, this extension will activate the application from that .desktop file.
     * consult `xmodmap` to see the overview of the keys that are mapped to mods
     * consult `xev` to determine key symbols you have mapped
     * ex: if the key <kbd>Alt Gr</kbd> corresponds with the key symbol `<ISO_Level3_Shift>` that is bound to **mod5**, you would use `<Mod5>` to create its shortcuts
-    * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/master/src/core/meta-accel-parse.c) source code.
+    * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/main/src/core/meta-accel-parse.c) source code.
   * non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
     * `<Num_Lock>`, `<Num_Lock_OFF>`
     * `<Caps_Lock>`, `<Caps_Lock_OFF>`
     * `<Scroll_Lock>`, `<Scroll_Lock_OFF>` (`Scroll_Lock` might not be available in Wayland session, hence might be removed in the future)
 
-## Modes
+
+### Action: command, wm_class and title
+* `command` can be either a commandline to launch, or the name of an application's .desktop file.
+If `command` is a commandline, this extension will spawn a new process using that commandline. If `command` points to a .desktop
+file, this extension will activate the application from that .desktop file.
+* `wm_class` and `title` arguments are optional and case-sensitive
+* if neither `wm_class` nor `title` is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
+
+### Char
+
+Layered shortcuts. After the shortcut is hit, you may specify one or more characters to be written in order to trigger the action.
+```
+<Super>e a,notify-send Launched a
+<Super>e b,notify-send Launched b
+<Super>e c d,notify-send Launched cd
+<Super>e c e,notify-send Launched ce
+```
+
+### Modes
 
 Modes are special instructions that let you change the triggered behaviour. Some of them can be turned on globally in the extension preferences (so you do not have to specify them for every single shortcut if you need them everywhere).
 
@@ -65,28 +79,28 @@ You can combine multiple modes by appending a colon. On the first hit, we regist
 <Super>i:raise-or-register:move-window-to-active-workspace
 ```
 
-### `isolate-workspace`
+#### `isolate-workspace`
 Switch windows on the active workspace only
   ```
   # cycles Firefox instances in the current workspace
   <Super>KP_1,firefox,
   ```
-### `minimize-when-unfocused`
+#### `minimize-when-unfocused`
 Minimizes your target when unfocusing
-### `switch-back-when-focused`
+#### `switch-back-when-focused`
 Switch back to the previous window when focused
-### `move-window-to-active-workspace`
+#### `move-window-to-active-workspace`
 Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
-### `center-mouse-to-focused-window`
+#### `center-mouse-to-focused-window`
 After focus move mouse to window center
-### `always-run`
+#### `always-run`
 Both runs the command and raises a window
 ```
 # Runs a command whether a window with wm_class 'kitty' is already open or not
 <Super>t:always-run,my_tmux_script.sh,kitty
 ```
-### `run-only`
-Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit and never raises a window. The keyword is implicit if no superfluous commas are noted in the line: `shortcut,command`   
+#### `run-only`
+Since it is very convenient to use a single file for all of your shortcuts (backup, migration to another system...), you can define standard shortcuts as well. These commands just get launched whenever the keys are hit and never raises a window. The keyword is implicit if no superfluous commas are noted in the line: `shortcut,command`
 
 ```
 # this line will launch the notify-send command.
@@ -96,10 +110,10 @@ Since it is very convenient to use a single file for all of your shortcuts (back
 <Super>f,firefox,
 
 # these equivalent lines will always launch a new Firefox instance, never raising a window
-<Super>f,firefox    
+<Super>f,firefox
 <Super>f:run-only,firefox,
 ```
-### `register(0)`
+#### `register(0)`
 Register the current window dynamically to be re-raised by using `raise` mode with the same number in the argument
 ```
 <Super><Ctrl>KP_0:register(1)
@@ -107,16 +121,16 @@ Register the current window dynamically to be re-raised by using `raise` mode wi
 <Super><Ctrl>KP_Delete:register(2)
 <Super>KP_Delete:raise(2)
 ```
-### `raise(0)`
+#### `raise(0)`
 Raise the windows previously registered by the `register` keyword
-### `raise-or-register`
-If nothing registered yet, register the current window. Next time raise it unless the window is closed. In the example, we set <kbd>Super+i</kbd> and <kbd>Super+o</kbd> to bind a window each. 
-```   
-<Super>i:raise-or-register
-<Super>o:raise-or-register  
+#### `raise-or-register`
+If nothing registered yet, register the current window. Next time raise it unless the window is closed. In the example, we set <kbd>Super+i</kbd> and <kbd>Super+o</kbd> to bind a window each.
 ```
-### `verbose`
-Put debug details into system log (possible at `/var/log/syslog`) and popups some of them via `notify-send`. (Normally it seems launched commands pipe the output to the *syslog* as well.)
+<Super>i:raise-or-register
+<Super>o:raise-or-register
+```
+#### `verbose`
+Popups debug details via `notify-send`. (Normally it seems launched commands pipe the output to the `/var/log/syslog`.)
 
 
 ## Examples
@@ -146,7 +160,7 @@ If you want to be sure that your browser won't be focused when you're on the pag
 ```
 
 
-You may use **regular expressions** in `title` or `wm_class`. Just put the expression between slashes.   
+You may use **regular expressions** in `title` or `wm_class`. Just put the expression between slashes.
 E.g. to jump to pidgin conversation window you may use this line
 (that mean any windows of `wm_class` Pidgin, not containing the title Buddy List)"
 

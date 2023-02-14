@@ -2,12 +2,15 @@
 #
 # The shortcuts may be defined in two ways:
 #
-# 1. Run-or-raise form: shortcut,launch-command,[wm_class],[title]
-#        * wm_class and title are optional and case sensitive
-#        * if none is set, lowercased launch-command is compared with lowercased windows wm_classes and titles
+# 1. Run-or-raise form: shortcut,command,[wm_class],[title]
+#        * `wm_class` and `title` are optional and case sensitive
+#        * if none is set, lowercased launch `command` is compared with lowercased windows wm_classes and titles
 #
-# 2. Run only form: shortcut,calculate
+# 2. Run only form: shortcut,command
 #
+#
+# In fact, full form is `shortcut[ char][:mode],command,[wm_class],[title]`
+# while `char` allows you to use layered shortcuts and `mode` to further specify circumstances.
 #
 # =================
 # Run or raise form
@@ -36,10 +39,11 @@
 # Run only form
 # =============
 #
-# This line will launch notify-send command.
+# This line will launch the `notify-send` command.
 <Super>h,notify-send Hello world
 
-
+# This layered shortcut will output the text only when you write `hello` after hitting <Super>e.
+<Super>e h e l l o,notify-send Layered hello
 
 
 # Blank lines are allowed. Line starting with "#" means a comment.

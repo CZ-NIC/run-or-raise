@@ -1,18 +1,26 @@
 const Main = imports.ui.main;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const { Meta, Shell, St, Gdk, Gio, Clutter } = imports.gi
 const ExtensionUtils = imports.misc.extensionUtils
-const {spawnCommandLine} = imports.misc.util
-const Gdk = imports.gi.Gdk
-const Gio = imports.gi.Gio
-const Clutter = imports.gi.Clutter
+const { spawnCommandLine } = imports.misc.util
+const ModalDialog = imports.ui.modalDialog.ModalDialog
+const Dialog = imports.ui.dialog.Dialog
 
+const PopupMenu = imports.ui.popupMenu;
 
-let seat, pointer, keymap, app, conf_path, default_conf_path, settings
+let seat, pointer, keymap, conf_path, default_conf_path, settings
+/**
+ * @type {Controller}
+ */
+let app
 
 function display(text) {
     Main.notify("Run-or-raise", text)
 }
+
+/**
+ * @typedef {boolean[]} State Array of true/false
+ */
+
 
 /**
  * Helper class (simulating Python collections.defaultdict)
@@ -43,22 +51,23 @@ function arraysEqual(arr1, arr2) {
 }
 
 /**
- * @type {Action[]} Actions in the array have the same shortcut accelerator
+ *  @typedef {Action[]} Accelerator Actions in the array have the same shortcut accelerator.
+ *  XX do not know how to document the values of a class extending array properly
  */
 class Accelerator extends Array {
 
     /**
      * @type {Map}
      */
-    // static grabbers XX Uncomment when Ubuntu 20.04 Gnome-shell 3.36 dropped.
+    static grabbers
 
     constructor(shortcut) {
         super()
         /**
          * ID of the grabber accelerator action.
          * We may use this ID to ungrab the accelerator.
-         * All action in this ActionGroup have it in common
-         * @type {int?}
+         * All actions in this Accelerator have it in common
+         * @type {?number}
          */
         this.action_id = null
         this.name = null
@@ -81,6 +90,11 @@ class Accelerator extends Array {
         }
     }
 
+    /**
+     *
+     * @param {State} state
+     * @returns {Action[]}
+     */
     filter_actions(state) {
         return this.filter(action => action.state_conforms(state))
     }
@@ -102,15 +116,16 @@ class Accelerator extends Array {
         // Requesting WM to allow binding name
         Main.wm.allowKeybinding(this.name, Shell.ActionMode.ALL)
 
-        Accelerator.grabbers.set(action, () => this.filter_actions(state).forEach(action => {
-                    try {
-                        action.trigger()
-                    } catch (e) {
-                        display(`${this.shortcut} ${e}`)
-                    }
+        Accelerator.grabbers.set(action, () => app.layered_shortcut(this.filter_actions(state).filter(action => {
+            try {
+                if (action.layers.length) {
+                    return action
                 }
-            )
-        )
+                action.trigger()
+            } catch (e) {
+                display(`${this.shortcut} ${e}`)
+            }
+        })))
     }
 
     disconnect() {
@@ -193,13 +208,14 @@ class Action {
 
     /**
      * Single shortcut binding representation
-     * @param command
-     * @param wm_class
-     * @param title
+     * @param {String} command
+     * @param {String} wm_class
+     * @param {String} title
      * @param {Mode} mode
-     * @return function
+     * @param {String} shortcut_bare
+     * @param {String[]} layers
      */
-    constructor(command = "", wm_class = "", title = "", mode = null) {
+    constructor(command = "", wm_class = "", title = "", mode = null, shortcut_bare = "", layers = []) {
         this.command = command
         this.wm_class = wm_class || ""  // may be undefined when user does not set enough parameters
         this.title = title || ""  // may be undefined when user does not set enough parameters
@@ -208,18 +224,21 @@ class Action {
         this.titleFn = null;
         [this.wm_class, this.wmFn] = this._allow_regex(wm_class);
         [this.title, this.titleFn] = this._allow_regex(title);
+        /**
+         * @type {String[]} `<Super>g a b,command` → ["a", "b"]
+         */
+        this.layers = layers || []
 
         /**
          * Is the actions depend on the keyboard-lock state
-         * @type {boolean?>}
+         * @type {?boolean}
          */
         this.num_lock = this.caps_lock = this.scroll_lock = null;
 
         /**
-         * Set by this.set_shortcut
          * @type {String}
          */
-        this.shortcut = null;
+        this.shortcut = this._set_shortcut(shortcut_bare)
 
         /**
          * Shortcuts remembers the windows it is bind to
@@ -309,7 +328,7 @@ class Action {
         window.get_workspace().activate_with_focus(window, true)
         window.activate(0)
         if (this.mode.get(Mode.CENTER_MOUSE_TO_FOCUSED_WINDOW)) {
-            const {x, y, width, height} = window.get_frame_rect()
+            const { x, y, width, height } = window.get_frame_rect()
             seat.warp_pointer(x + width / 2, y + height / 2)
         }
         this.debug("Window activated")
@@ -402,7 +421,7 @@ class Action {
      * @param shortcut
      * @return {*} Return the shortcut with the non-standard modifiers removed
      */
-    set_shortcut(shortcut) {
+    _set_shortcut(shortcut) {
 
         const included = (sym) => {
             if (shortcut.includes(`<${sym}>`)) {
@@ -420,7 +439,7 @@ class Action {
         this.caps_lock = included("Caps_Lock")
         this.scroll_lock = included("Scroll_Lock")
 
-        return this.shortcut = shortcut.trim()
+        return shortcut.trim()
     }
 
     /**
@@ -434,7 +453,7 @@ class Action {
 
     /**
      * Is the shortcut valid in the current keyboard state?
-     * @param state_system Array of true/false
+     * @param {State} state_system Array of true/false
      * @return {boolean} True if all boolean values matches whereas null values in this.get_state() are ignored.
      */
     state_conforms(state_system) {
@@ -449,6 +468,34 @@ class Action {
         }
         return true
     }
+
+    static parseLine(line) {
+        // Optional argument quoting in the format: `shortcut[:mode][:mode],[command],[wm_class],[title]`
+        // ', b, c, "d, e,\" " f", g, h' -> ["", "b", "c", "d, e,\" \" f", "g", "h"]
+        const args = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
+            .map(s => s.trim())
+            .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
+        const [shortcut_layer_mode, command, wm_class, title] = args
+
+        global.log("raise4")
+        // Split shortcut[:mode][:mode] -> shortcut, mode
+        const [shortcut_layer, ...modes] = shortcut_layer_mode.split(":")
+        const [shortcut_bare, ...layers] = shortcut_layer.split(" ")
+        // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
+        // XX Use this statement since Gnome shell 3.38 (named groups do not work in 3.36 yet)
+        const mode = new Mode(modes
+            //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+            //     .filter(m => m) // "launch" must be a valid mode string
+            //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
+            .map(m => m.match(/([^(]*)(\((.*?)\))?/)) // "launch" -> key=launch, arg=undefined
+            .filter(m => m) // "launch" must be a valid mode string
+            .map(m => [m[1], m[3] || true]) // ["launch", true]
+        )
+        if (args.length <= 2) { // Run only mode, we never try to raise a window
+            mode.add(Mode.RUN_ONLY, true)
+        }
+        return new Action(command, wm_class, title, mode, shortcut_bare, layers)
+    }
 }
 
 /**
@@ -461,31 +508,10 @@ class Controller {
         consumed the shortcut when Num_Lock (nothing printed out) but it seems nothing was triggered here.
 
         Keymap.get_modifier_state() returns an int 2^x where x is 8 positions of xmodmap*/
-        let s;
-        try {
-            s = Shell.get_file_contents_utf8_sync(conf_path);
-        } catch (e) {
-            Main.notify(`Run or raise> cannot load confpath ${conf_path}, creating new file from default`);
-            // instead of using `mkdir -p` and `cp`,
-            // the GNOME team required me to use this dark and cumbersome methods to copy a single file
-            const target_dir = Gio.File.new_for_path(conf_path.substr(0, conf_path.lastIndexOf("/")))
-            const target = Gio.File.new_for_path(conf_path)
-            const source = Gio.File.new_for_path(default_conf_path)
-            try {
-                target_dir.make_directory_with_parents(null)
-            } catch (e) {
-                ; // directory already exists
-            }
-            source.copy(target, null, null, null)
-
-            try {
-                s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
-            } catch (e) {
-                display("Failed to create the default file")
-                return;
-            }
+        const shortcuts = this._fetch_shortcuts()
+        if (!shortcuts) {
+            return
         }
-        let shortcuts = s.split("\n")
         Accelerator.grabbers = new Map()
 
         // Catch the signal that one of system-defined accelerators has been triggered
@@ -496,43 +522,18 @@ class Controller {
 
         /**
          *
-         * @type {DefaultMap} {shortcut => [action, ...]}
+         * @type {DefaultMap<String,Accelerator>} {shortcut => [action, ...]}
          */
         const accelerators = new DefaultMap((shortcut) => new Accelerator(shortcut))
         this.accelerators = accelerators
 
         // parse shortcut file
-        for (let line of shortcuts) {
+        for (const line of shortcuts) {
             try {
                 if (line[0] === "#" || line.trim() === "") {  // skip empty lines and comments
-                    continue;
+                    continue
                 }
-
-                // Optional argument quoting in the format: `shortcut[:mode][:mode],[command],[wm_class],[title]`
-                // ', b, c, "d, e,\" " f", g, h' -> ["", "b", "c", "d, e,\" \" f", "g", "h"]
-                let args = line.split(/,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/)
-                    .map(s => s.trim())
-                    .map(s => (s[0] === '"' && s.slice(-1) === '"') ? s.slice(1, -1).trim() : s) // remove quotes
-                let [shortcut_mode, command, wm_class, title] = args;
-
-                // Split shortcut[:mode][:mode] -> shortcut, mode
-                let [shortcut_raw, ...modes] = shortcut_mode.split(":")
-                // Store to "shortcut:cmd:launch(2)" → new Mode([["cmd", true], ["launch": 2]])
-                // XX Use this statement since Gnome shell 3.38 (named groups do not work in 3.36 yet)
-                let mode = new Mode(modes
-                    //     .map(m => m.match(/(?<key>[^(]*)(\((?<arg>.*?)\))?/)) // "launch" -> key=launch, arg=undefined
-                    //     .filter(m => m) // "launch" must be a valid mode string
-                    //     .map(m => [m.groups.key, m.groups.arg || true])  // ["launch", true]
-                    .map(m => m.match(/([^(]*)(\((.*?)\))?/)) // "launch" -> key=launch, arg=undefined
-                    .filter(m => m) // "launch" must be a valid mode string
-                    .map(m => [m[1], m[3] || true])  // ["launch", true]
-                )
-                if (args.length <= 2) { // Run only mode, we never try to raise a window
-                    mode.add(Mode.RUN_ONLY, true)
-                }
-                let action = new Action(command, wm_class, title, mode)
-                action.set_shortcut(shortcut_raw)
-
+                const action = Action.parseLine(line)
                 accelerators.get(action.shortcut).push(action)
             } catch (e) {
                 display(`Cannot parse line: ${line}. ${e}`)
@@ -553,13 +554,13 @@ class Controller {
          */
         const lock_dependent_accelerators = []
         accelerators.forEach((actions, shortcut) => {
-                // Launch only generic shortcuts (not lock-dependent) (group having no no-lock shortcuts amongst)
-                if (actions.some(action => action.get_state().every(lock => lock === null))) { // these are always on
-                    actions.connect(this.get_state())
-                } else { // these are lock-dependent, on only if keyboard-locks match
-                    lock_dependent_accelerators.push(actions)
-                }
+            // Launch only generic shortcuts (not lock-dependent) (group having no no-lock shortcuts amongst)
+            if (actions.some(action => action.get_state().every(lock => lock === null))) { // these are always on
+                actions.connect(this.get_state())
+            } else { // these are lock-dependent, on only if keyboard-locks match
+                lock_dependent_accelerators.push(actions)
             }
+        }
         )
 
         // De/register accelerators depending on the keyboard state
@@ -574,12 +575,43 @@ class Controller {
 
         this.handler_state_changed = keymap.connect('state-changed', on_state_changed);
         on_state_changed()
+
+        this.handler_keypress = null
+    }
+
+    _fetch_shortcuts() {
+        let s;
+        try {
+            s = Shell.get_file_contents_utf8_sync(conf_path);
+        } catch (e) {
+            display(`Cannot load confpath ${conf_path}, creating new file from default`)
+            // instead of using `mkdir -p` and `cp`,
+            // the GNOME team required me to use this dark and cumbersome methods to copy a single file
+            const target_dir = Gio.File.new_for_path(conf_path.substr(0, conf_path.lastIndexOf("/")))
+            const target = Gio.File.new_for_path(conf_path)
+            const source = Gio.File.new_for_path(default_conf_path)
+            try {
+                target_dir.make_directory_with_parents(null)
+            } catch (e) {
+                ; // directory already exists
+            }
+            source.copy(target, null, null, null)
+
+            try {
+                s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
+            } catch (e) {
+                display("Failed to create the default file")
+                return;
+            }
+        }
+        return s.split("\n")
     }
 
 
     disable() {
         this.accelerators.forEach(actions => actions.disconnect())  // ungrab the accelerators
         global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
+        this._remove_handler_keypress()
         keymap.disconnect(this.handler_state_changed)  // stop listening to keyboard-locks changes
     }
 
@@ -588,8 +620,75 @@ class Controller {
         // It was available via Gdm which does not work in Wayland.
         // Check in the further version of Gnome whether scroll_lock state was restored or get rid of it.
         return [keymap.get_num_lock_state(), keymap.get_caps_lock_state(),
-            keymap.get_scroll_lock_state ? keymap.get_scroll_lock_state() : 0
+        keymap.get_scroll_lock_state ? keymap.get_scroll_lock_state() : 0
         ]
+    }
+
+    /**
+     * We have launched a layered shortcut.
+     * Start a key press listener to identify which one should be triggered.
+     * @param {Action[]} candidates
+     */
+    layered_shortcut(candidates) {
+        if (!candidates.length) { // no action was a layer action
+            return
+        }
+
+        const layers = []
+        this._handler_keypress_init()
+        this.handler_keypress.connect_after(
+            'key-press-event',
+            (actor, event) => {
+                const symbol = String.fromCharCode(event.get_key_symbol())
+                layers.push(symbol)
+
+                candidates = candidates.filter(action => arraysEqual(action.layers.slice(0, layers.length), layers))
+                if (!candidates.length) {
+                    // no candidate for the layered shortcut, give up
+                    this._remove_handler_keypress()
+                    return
+                }
+                const triggrable = candidates.filter(action => arraysEqual(action.layers, layers))
+                if (triggrable.length) {
+                    // an action was triggered, treat launching layered shortcut as completed
+                    // and return the keyboard focus to the previous input
+                    triggrable.map(action => action.trigger())
+                    this._remove_handler_keypress()
+                }
+            }
+        )
+        this.handler_keypress.connect(
+            'key-focus-out',
+            () => this._remove_handler_keypress()
+        )
+    }
+
+    /**
+     * A key press listener, invisible in GUI.
+     */
+    _handler_keypress_init() {
+        if (this.handler_keypress) {
+            const s = "Keypress handler already present"
+            display(s)
+            throw new Error(s)
+        }
+        this.handler_keypress = new St.Bin({
+            reactive: true,
+            can_focus: true,
+        })
+        Main.layoutManager.addChrome(this.handler_keypress, {
+            affectsInputRegion: true,
+            trackFullscreen: true,
+        })
+        this.handler_keypress.grab_key_focus()
+    }
+
+    _remove_handler_keypress() {
+        if (this.handler_keypress) {
+            this.handler_keypress.destroy()
+            this.handler_keypress = null
+            global.log("** Remove layer")
+        }
     }
 }
 
