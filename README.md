@@ -191,6 +191,7 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 How to implement a new mode?
 
+* when tired of logging out to refresh the code, launch a new wayland session ex by: `dbus-run-session -- gnome-shell --nested --wayland` and subsequently turn off the extension in the main session
 * create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
 * create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
 * put the logics into `Action.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
