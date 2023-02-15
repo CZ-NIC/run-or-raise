@@ -31,27 +31,47 @@ Note that if an argument should contain a comma, use double quotes around.
 
 When you trigger a shortcut it lets you cycle amongst open instances of the application or if not found, launches a new instance. The file consists of shortcuts in the following form:
 
-`shortcut[ char][:mode],command,[wm_class],[title]`
+`shortcut[ shortcut][:mode],command,[wm_class],[title]`
 
 ### Shortcut
 
-* multiple actions may be registered to the same shortcut (shortcut appears on multiple lines)
-* `shortcut` modifiers
-  * basic
-    * `<Shift>`, `<Alt>`, `<Meta>`, `<Ctrl>` (`<Primary>`), `<Super>` known as <kbd>Win</kbd>, `<Hyper>`
-    * you may not have all of them on your keyboard by default
-    * `<ISO_Level5_Shift>` (I really recommend mapping this modifier instead of <kbd>Caps Lock</kbd>)
-  * mods
-    * `<Mod1>`, `<Mod2>`, `<Mod3>`, `<Mod4>`, `<Mod5>`
-    * consult `xmodmap` to see the overview of the keys that are mapped to mods
-    * consult `xev` to determine key symbols you have mapped
-    * ex: if the key <kbd>Alt Gr</kbd> corresponds with the key symbol `<ISO_Level3_Shift>` that is bound to **mod5**, you would use `<Mod5>` to create its shortcuts
-    * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/main/src/core/meta-accel-parse.c) source code.
-  * non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
-    * `<Num_Lock>`, `<Num_Lock_OFF>`
-    * `<Caps_Lock>`, `<Caps_Lock_OFF>`
-    * `<Scroll_Lock>`, `<Scroll_Lock_OFF>` (`Scroll_Lock` might not be available in Wayland session, hence might be removed in the future)
+Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character, like `<Shift>a`, `<Shift><Super>a` or simple `a`.
 
+For custom shortcuts, I recommended using mostly combinations containing the modifier `<Super>` as this normally means
+`<Shift>` is semantically reserved for letter case `a/A`, `<Alt>` for underlined letters and `<Ctrl>` for various application-defined actions.
+
+Possible modifiers:
+* basic
+  * `<Shift>`, `<Alt>`, `<Meta>`, `<Ctrl>` (`<Primary>`), `<Super>` known as <kbd>Win</kbd>, `<Hyper>`
+  * you may not have all of them on your keyboard by default
+  * `<ISO_Level5_Shift>` (I really recommend mapping this modifier instead of <kbd>Caps Lock</kbd>)
+* mods
+  * `<Mod1>`, `<Mod2>`, `<Mod3>`, `<Mod4>`, `<Mod5>`
+  * consult `xmodmap` to see the overview of the keys that are mapped to mods
+  * consult `xev` to determine key symbols you have mapped
+  * ex: if the key <kbd>Alt Gr</kbd> corresponds with the key symbol `<ISO_Level3_Shift>` that is bound to **mod5**, you would use `<Mod5>` to create its shortcuts
+  * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/main/src/core/meta-accel-parse.c) source code.
+* non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
+  * `<Num_Lock>`, `<Num_Lock_OFF>`
+  * `<Caps_Lock>`, `<Caps_Lock_OFF>`
+  * `<Scroll_Lock>`, `<Scroll_Lock_OFF>` (`Scroll_Lock` might not be available in Wayland session, hence might be removed in the future)
+
+Multiple actions may be registered to the same shortcut (a shortcut appears on multiple lines).
+```
+<Super>e,send-notify appears first
+<Super>e,send-notify appears second
+```
+
+Layered shortcuts are possible. After the shortcut is hit, you may specify one or more shortcuts to be hit in order to trigger the action.
+```
+<Super>e a,notify-send Launched a
+<Super>e b,notify-send Launched b
+<Super>e c d,notify-send Launched cd
+<Super>e c e,notify-send Launched ce
+<Super>g,notify-send Launched "<Super>g"
+<Super>e <Super>g,notify-send Launched "<Super>e and then <Super>g"
+<Super>e <Super>e e,notify-send Launched "<Super>e e"
+```
 
 ### Action: command, wm_class and title
 * `command` can be either a commandline to launch, or the name of an application's .desktop file.
@@ -59,16 +79,6 @@ If `command` is a commandline, this extension will spawn a new process using tha
 file, this extension will activate the application from that .desktop file.
 * `wm_class` and `title` arguments are optional and case-sensitive
 * if neither `wm_class` nor `title` is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
-
-### Char
-
-Layered shortcuts. After the shortcut is hit, you may specify one or more characters to be written in order to trigger the action.
-```
-<Super>e a,notify-send Launched a
-<Super>e b,notify-send Launched b
-<Super>e c d,notify-send Launched cd
-<Super>e c e,notify-send Launched ce
-```
 
 ### Modes
 
@@ -191,7 +201,6 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 How to implement a new mode?
 
-* when tired of logging out to refresh the code, launch a new wayland session ex by: `dbus-run-session -- gnome-shell --nested --wayland` and subsequently turn off the extension in the main session
 * create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
 * create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
 * put the logics into `Action.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
@@ -200,3 +209,12 @@ How to implement a new mode?
 * put a description into [CHANGELOG.md](CHANGELOG.md) file
 * raise a version in [metadata.json](metadata.json)
 * create a pull request with (preferably) a single commit
+
+### Debugging
+When tired of logging out to refresh the code, launch a new wayland session ex by:
+
+```
+(sleep 1 && gnome-extensions disable run-or-raise@edvard.cz & ) && dbus-run-session -- gnome-shell --nested --wayland && gnome-extensions enable run-or-raise@edvard.cz
+```
+
+What does this command do? The extension must be running in the main session in order to be started in the nested too. After a second, we disable it in the main session to not interfere with the nested instance of the extension: They share the same shortcuts and the main would prevail. When the session is over, enable it in the main again.

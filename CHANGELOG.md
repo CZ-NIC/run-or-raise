@@ -1,9 +1,13 @@
 # CHANGELOG
 
-## 24
+## 28 (2023-02-15)
+- layered shortcuts #53
+- amazing debugging tip
+
+## 24 (2022-10-06)
 - center mouse fix #45
 
-## 13
+## 13 (2022-02-08)
 - added shell version 41 support
 - added support for starting applications from .desktop files
 
@@ -27,7 +31,7 @@
 
 ## 3.32 (2019-12-12)
 - grab accelerator parameter change
-- custom config dir to prevent Gnome wipe the shortcuts.conf on upgrade #19 
+- custom config dir to prevent Gnome wipe the shortcuts.conf on upgrade #19
 
 ## 3.26 (2019-04-30)
 Everything working as expected.

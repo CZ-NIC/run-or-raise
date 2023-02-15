@@ -45,6 +45,8 @@
 # This layered shortcut will output the text only when you write `hello` after hitting <Super>e.
 <Super>e h e l l o,notify-send Layered hello
 
+# This layered shortcut will not interfere with the shorcut above that is launching a terminal.
+<Super>e <Super>r,notify-send Layered 'Terminal was not launched.'
 
 # Blank lines are allowed. Line starting with "#" means a comment.
 # Now delete these shortcuts and put here yours.
