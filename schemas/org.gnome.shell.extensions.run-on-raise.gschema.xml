@@ -4,7 +4,7 @@
     <key type="b" name="switch-back-when-focused">
       <default>false</default>
       <summary>Switch back to previous window when focused</summary>
-      <description>Switch back to previous window when focused</description>
+      <description></description>
     </key>
     <key type="b" name="minimize-when-unfocused">
       <default>false</default>
@@ -14,7 +14,7 @@
     <key type="b" name="center-mouse-to-focused-window">
       <default>false</default>
       <summary>After focus move mouse to window center</summary>
-      <description>After focus move mouse to window center</description>
+      <description></description>
     </key>
     <key type="b" name="move-window-to-active-workspace">
       <default>false</default>
@@ -24,7 +24,12 @@
     <key type="b" name="isolate-workspace">
       <default>false</default>
       <summary>Switch windows on the active workspace only</summary>
-      <description>Switch windows on the active workspace only</description>
+      <description></description>
+    </key>
+    <key type="b" name="verbose">
+      <default>false</default>
+      <summary>Verbose</summary>
+      <description>Provide debug information. (Highlight layered shortcuts by a yellow rectangle etc.)</description>
     </key>
   </schema>
 </schemalist>

@@ -32,7 +32,7 @@
 
 
 # Have the mail always at numpad-click.
-<Super>KP_2,chromium-browser --app=https://mail.google.com/mail/u/0/#inbox
+<Super>KP_2,chromium-browser --app=https://mail.google.com/mail/u/0/#inbox,mail.google.com,
 
 
 # =============
@@ -50,4 +50,4 @@
 
 # Blank lines are allowed. Line starting with "#" means a comment.
 # Now delete these shortcuts and put here yours.
-# How to know wm_class? Alt+f2, lg, "windows" tab (at least on Ubuntu 17.10)
+# How to know wm_class? Using xprop or the looking glass tool, see README.md

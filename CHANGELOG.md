@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 29
+- wm_class compared not only to `window.wm_class()` but to the `window.wm_class_instance()` too (which is great news)
+- verbose mode
+
 ## 28 (2023-02-15)
 - layered shortcuts #53
 - amazing debugging tip

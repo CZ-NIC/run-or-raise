@@ -49,7 +49,7 @@ Clutter.KEY_Meta_L, Clutter.KEY_Meta_R,
  */
 class App {
 
-    display(text, title="") {
+    display(text, title = "") {
         Main.notify("Run-or-raise " + title, text)
     }
 
@@ -60,6 +60,7 @@ class App {
 
     constructor(settings, seat, keymap) {
         this.settings = settings
+        this.verbose = this.settings.get_boolean("verbose")
         this.seat = seat
         this.keymap = keymap
 
@@ -69,6 +70,7 @@ class App {
          */
         this.register = []
         /**
+         * Accelerators currently connected to the WM.
          * @type {Map<Number, Accelerator>} [accelerator.action_id] => accelerator
          */
         this.accelerator_map = new Map()
@@ -110,6 +112,10 @@ class App {
             'accelerator-activated',
             (display_, action, deviceId, timestamp) => {
                 const accelerator = this.accelerator_map.get(action)
+                if (!accelerator) {
+                    // ex: Fn+volume_up for an unknown reason ends up here
+                    return
+                }
                 if (this.handler_layered) {
                     this.layer_finished()
 
@@ -237,7 +243,7 @@ class App {
         })
 
         this.layered_accelerators.forEach(acc => acc.connect())
-        this._handler_layered_init(true)
+        this._handler_layered_init(this.verbose)
     }
 
     /**
@@ -246,7 +252,7 @@ class App {
     */
     _handler_layered_init(debug = false) {
         if (this.handler_layered) {
-            throw this.error("Layered handler already present")
+            return // handler already present from the last layer
         }
         this.handler_layered = new St.Bin({
             reactive: true,
@@ -287,7 +293,7 @@ class App {
 
     layered_mode_stop() {
         this.layer_finished()
-        this.unblock_later.forEach(acc => acc.unblock()) // XXX unblock only if this is the very end?
+        this.unblock_later.forEach(acc => acc.unblock())
         this.unblock_later.clear()
 
         if (this.handler_layered) {

@@ -37,8 +37,7 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 
 Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character, like `<Shift>a`, `<Shift><Super>a` or simple `a`.
 
-For custom shortcuts, I recommended using mostly combinations containing the modifier `<Super>` as this normally means
-`<Shift>` is semantically reserved for letter case `a/A`, `<Alt>` for underlined letters and `<Ctrl>` for various application-defined actions.
+For custom shortcuts, I recommended using mostly combinations containing the modifier `<Super>` as this normally indicates global shortcuts. In the opposition to `<Shift>` which is semantically reserved for letter case `a/A`, `<Alt>` for underlined letters and `<Ctrl>` for various application-defined actions.
 
 Possible modifiers:
 * basic
@@ -56,10 +55,10 @@ Possible modifiers:
   * `<Caps_Lock>`, `<Caps_Lock_OFF>`
   * `<Scroll_Lock>`, `<Scroll_Lock_OFF>` (`Scroll_Lock` might not be available in Wayland session, hence might be removed in the future)
 
-Multiple actions may be registered to the same shortcut (a shortcut appears on multiple lines).
+Multiple actions may be registered to the same shortcut (a shortcut appears on multiple lines). They get lauched sequentionally.
 ```
-<Super>e,send-notify appears first
-<Super>e,send-notify appears second
+<Super>e,notify-send appears first
+<Super>e,notify-send appears second
 ```
 
 Layered shortcuts are possible. After the shortcut is hit, you may specify one or more shortcuts to be hit in order to trigger the action.
@@ -73,12 +72,49 @@ Layered shortcuts are possible. After the shortcut is hit, you may specify one o
 <Super>e <Super>e e,notify-send Launched "<Super>e e"
 ```
 
-### Action: command, wm_class and title
-* `command` can be either a commandline to launch, or the name of an application's .desktop file.
-If `command` is a commandline, this extension will spawn a new process using that commandline. If `command` points to a .desktop
-file, this extension will activate the application from that .desktop file.
+### Action: `command`, `wm_class` and `title`
+* `command` can be either:
+  * a command line instruction to be spawned in a new process
+  * the name of an application's .desktop file to be activated
 * `wm_class` and `title` arguments are optional and case-sensitive
 * if neither `wm_class` nor `title` is set, lower-cased `command` is compared with lower-cased windows' wm_classes and titles
+
+#### Understanding `title` and `wm_class`
+The `title` is shown in the header area. Since the title tends to be dynamically changed by the application, you can use `wm_class` which compares to both parts (both `WM_CLASS_NAME` and `WM_CLASS_INSTANCE`) of this window property.
+
+How to know the `wm_class`?
+Just use the `xprop` program and filter the `WM_CLASS` line:
+
+```bash
+$ xprop
+# hit the mail window with the mouse cursor and get:
+WM_CLASS(STRING) = "mail.google.com__mail_u_0", "Google-chrome"
+```
+
+The first string `mail.google.com__mail_u_0` is more specific `WM_CLASS_INSTANCE`, the second `Google-chrome` is more stable `WM_CLASS_NAME`.
+
+Alternatively, you can use the looking glass tool (at least on Ubuntu 17.10+) by launching <kbd>Alt+f2</kbd> / `lg` / "Windows" tab. There, you see `WM_CLASS_NAME` listed as `wmclass`. To get the `WM_CLASS_INSTANCE`, click on a window title / button "Insert" / go back to the "Evaluator" tab and refer the window via the inserted value `r` like: `r(0).get_wm_class_instance()`.
+I found no easier solution for the moment.
+
+#### Comparison of different matching approaches
+
+Following shortcut will firstly launch mail window in an application mode. Later on, it will cycle all windows that have `mail.google.com` in the `wm_class`. (Which is what we want here.)
+
+```
+<Super>e,/opt/google/chrome/google-chrome --app=https://mail.google.com/mail/u/0,mail.google.com,
+```
+
+In an opposite manner, this would cycle all Chrome windows. (Which is not what we want.)
+
+```
+<Super>e,/opt/google/chrome/google-chrome --app=https://mail.google.com/mail/u/0,Google-chrome,
+```
+
+And finally, using the `title` part rather than the `wm_class` part, this would cycle all windows that have Gmail in the title. On one side this would include windows just mentioning Gmail (bad). On the other side when somebody writes you to the chat, the window title changes and the shortcut would open another Gmail instance (even worse).
+
+```
+<Super>e,/opt/google/chrome/google-chrome --app=https://mail.google.com/mail/u/0,,Gmail
+```
 
 ### Modes
 
@@ -98,7 +134,7 @@ Switch windows on the active workspace only
 #### `minimize-when-unfocused`
 Minimizes your target when unfocusing
 #### `switch-back-when-focused`
-Switch back to the previous window when focused
+Switch back to the previous window when focused. If a shortcut has no but a single window to cycle, it focuses last used window instead of doing nothing.
 #### `move-window-to-active-workspace`
 Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
 #### `center-mouse-to-focused-window`
@@ -193,7 +229,6 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 # Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
-* How to know the `wm_class`? <kbd>Alt+f2</kbd>, `lg`, "windows" tab (at least on Ubuntu 17.10)
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
 * In the case of segfault, check no conflicting key binding [is present](https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994), then submit an issue.
 
@@ -217,4 +252,4 @@ When tired of logging out to refresh the code, launch a new wayland session ex b
 (sleep 1 && gnome-extensions disable run-or-raise@edvard.cz & ) && dbus-run-session -- gnome-shell --nested --wayland && gnome-extensions enable run-or-raise@edvard.cz
 ```
 
-What does this command do? The extension must be running in the main session in order to be started in the nested too. After a second, we disable it in the main session to not interfere with the nested instance of the extension: They share the same shortcuts and the main would prevail. When the session is over, enable it in the main again.
+What does this command do? Note that the extension must be running in the main session in order to be started in the nested session too. So after a second, we disable it in the main session to not interfere with the nested instance of the extension: They share the same shortcuts and the main would prevail. When the nested session is over, enable it in the main session again.

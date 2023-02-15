@@ -29,17 +29,18 @@ function buildPrefsWidget() {
     }
 
 function booleanBox(data, settings) {
-        let vbox = new Gtk.Box({
+        const vbox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             margin_top: 15,
             spacing: 10
-        });
-        let switcher = new Gtk.Switch({active: data.value});
-        let label = new Gtk.Label({label: data.summary});
+        })
+        const switcher = new Gtk.Switch({active: data.value})
+        const text = data.summary + (data.description? ": " + data.description : "")
+        const label = new Gtk.Label({label: text})
         switcher.connect('notify::active', function(o) {
-            settings.set_boolean(data.name, o.active);
-        });
-        vbox.append(switcher);
-        vbox.append(label);
-        return vbox;
+            settings.set_boolean(data.name, o.active)
+        })
+        vbox.append(switcher)
+        vbox.append(label)
+        return vbox
 }
