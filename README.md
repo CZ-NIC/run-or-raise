@@ -150,7 +150,7 @@ Since it is very convenient to use a single file for all of your shortcuts (back
 
 ```
 # this line will launch the notify-send command.
-<Super>h,notify-send Hello world
+<Super>y,notify-send Hello world
 
 # this line WILL raise a Firefox window or launches a command (note a trailing comma)
 <Super>f,firefox,
