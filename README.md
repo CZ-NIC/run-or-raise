@@ -129,7 +129,7 @@ You can combine multiple modes by appending a colon. On the first hit, we regist
 Switch windows on the active workspace only
   ```
   # cycles Firefox instances in the current workspace
-  <Super>KP_1,firefox,
+  <Super>KP_1:isolate-workspace,firefox,
   ```
 #### `minimize-when-unfocused`
 Minimizes your target when unfocusing
