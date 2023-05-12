@@ -4,13 +4,11 @@
   "name": "Run or raise",
   "settings-schema": "org.gnome.shell.extensions.run-or-raise",
   "shell-version": [
-    "40",
-    "41",
     "42",
     "43",
     "44"
   ],
   "url": "https://github.com/CZ-NIC/run-or-raise",
   "uuid": "run-or-raise@edvard.cz",
-  "version": 29
+  "version": 31
 }

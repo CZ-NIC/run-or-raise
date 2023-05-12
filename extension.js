@@ -1,5 +1,5 @@
 const Main = imports.ui.main;
-const { Meta, Shell, St, Gdk, Gio, Clutter } = imports.gi
+const { Shell, St, Gio, Clutter } = imports.gi
 const ExtensionUtils = imports.misc.extensionUtils
 const Me = ExtensionUtils.getCurrentExtension()
 
@@ -311,16 +311,7 @@ function init(options) {
 
 function enable() {
     const seat = Clutter.get_default_backend().get_default_seat()
-    let keymap
-    if (Meta.is_wayland_compositor()) {
-        keymap = seat.get_keymap()
-    } else {
-        // We should not use Gdk in the extension, Clutter should be used instead.
-        // Although it works, I've spotted its error (at least on Ubuntu 21.10, Gnome Shell 40.5, X11):
-        // Usecase: Having the Num Lock on, restart shell -> keymap.get_num_lock_state() returns false unless manually
-        // changed. Hence, we stay with Gdk for the moment.
-        keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
-    }
+    const keymap = seat.get_keymap()
     app = new App(ExtensionUtils.getSettings(), seat, keymap)
     app.enable()
 }

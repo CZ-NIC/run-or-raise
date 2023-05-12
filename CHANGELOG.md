@@ -1,6 +1,9 @@
 # CHANGELOG
 
-## 29
+## 31
+- Gnome 44 X11 support (removing Gdk)
+
+## 29 (2023-02-20)
 - wm_class compared not only to `window.wm_class()` but to the `window.wm_class_instance()` too (which is great news)
 - verbose mode
 
