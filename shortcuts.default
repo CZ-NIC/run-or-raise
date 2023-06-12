@@ -1,4 +1,4 @@
-# Here you list all the shortcuts.
+# Here you list all the shortcuts. To reload, turn the extension off and on.
 #
 # The shortcuts may be defined in two ways:
 #
@@ -9,7 +9,7 @@
 # 2. Run only form: shortcut,command
 #
 #
-# In fact, full form is `shortcut[ char][:mode],command,[wm_class],[title]`
+# In fact, the full form is `shortcut[ char][:mode],command,[wm_class],[title]`
 # while `char` allows you to use layered shortcuts and `mode` to further specify circumstances.
 #
 # =================

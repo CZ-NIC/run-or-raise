@@ -72,6 +72,11 @@ Layered shortcuts are possible. After the shortcut is hit, you may specify one o
 <Super>e <Super>e e,notify-send Launched "<Super>e e"
 ```
 
+If you need to discover a [keysym](https://wiki.linuxquestions.org/wiki/List_of_keysyms), I recommend the `xev` program again.
+```
+<Super>grave,notify-send Using backtick in the shortcut: `
+```
+
 ### Action: `command`, `wm_class` and `title`
 * `command` can be either:
   * a command line instruction to be spawned in a new process
