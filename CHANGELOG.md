@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 32
+- raise-or-register with index #61
+
 ## 31
 - Gnome 44 X11 support (removing Gdk)
 

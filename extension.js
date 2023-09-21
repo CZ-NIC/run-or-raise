@@ -320,3 +320,22 @@ function disable() {
     app.disable()
     app = null
 }
+
+// export default class RunOrRaiseExtension {
+//     init(options) {
+//         conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
+//         default_conf_path = options.path + "/shortcuts.default";
+//     }
+
+//     enable() {
+//         const seat = Clutter.get_default_backend().get_default_seat()
+//         const keymap = seat.get_keymap()
+//         app = new App(ExtensionUtils.getSettings(), seat, keymap)
+//         app.enable()
+//     }
+
+//     disable() {
+//         app.disable()
+//         app = null
+//     }
+// }

@@ -180,6 +180,8 @@ If nothing registered yet, register the current window. Next time raise it unles
 <Super>i:raise-or-register
 <Super>o:raise-or-register
 ```
+#### `raise-or-register(0)`
+If nothing registered yet, register the current window. Next time raise it unless the window is closed or unless remapped with `raise(the same number)`. It it thus a combination of `register`, `raise` and `raise-or-register`.
 #### `verbose`
 Popups debug details via `notify-send`. (Normally it seems launched commands pipe the output to the `/var/log/syslog`.)
 
@@ -241,8 +243,8 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 
 How to implement a new mode?
 
-* create new static keyword in the `Mode` class in the main [extension.js](extension.js) file
-* create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts
+* create new static keyword in the `Mode` class in the [mode.js](lib/mode.js) file
+* create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts and run `make compile`
 * put the logics into `Action.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
   * you may need [gjs.guide](https://gjs.guide/extensions), [gnome-shell source](https://gitlab.gnome.org/GNOME/gnome-shell/-/tree/main/js/) or [gjs-docs.gnome.org](https://gjs-docs.gnome.org)
 * document here in the [README.md](README.md)
