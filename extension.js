@@ -1,25 +1,35 @@
-const Main = imports.ui.main;
-const { Shell, St, Gio, Clutter } = imports.gi
-const ExtensionUtils = imports.misc.extensionUtils
-const Me = ExtensionUtils.getCurrentExtension()
+// const Main = imports.ui.main;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+// const { Shell, St, Gio, Clutter } = imports.gi
+import Shell from 'gi://Shell';
+import St from 'gi://St';
+import Gio from 'gi://Gio';
+import Clutter from 'gi://Clutter';
+// const ExtensionUtils = imports.misc.extensionUtils
+// const Me = ExtensionUtils.getCurrentExtension()
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 // Local imports
 /**
  * @typedef {import('./lib/action.js')}
 */
-const Action = Me.imports.lib.action.Action
+//const Action = Me.imports.lib.action.Action
+import * as Action from './lib/action.js';
 /**
  * @typedef {import('./lib/accelerator.js')}
 */
-const Accelerator = Me.imports.lib.accelerator.Accelerator
+//const Accelerator = Me.imports.lib.accelerator.Accelerator
+import * as Accelerator from './lib/accelerator.js';
 /**
  * @typedef {import('./lib/mode.js').Mode} Mode
 */
-const Mode = Me.imports.lib.mode.Mode
+// const Mode = Me.imports.lib.mode.Mode
+import * as Mode from './lib/mode.js';
 /**
  * @typedef {import('./lib/static.js')}
 */
-const { arraysEqual, DefaultMap } = Me.imports.lib.static
+// const { arraysEqual, DefaultMap } = Me.imports.lib.static
+import {arraysEqual, DefaultMap} from './lib/static.js';
 
 // Typedef
 /**
@@ -304,38 +314,39 @@ class App {
 }
 
 // Classes launched by gnome-shell
-function init(options) {
-    conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
-    default_conf_path = options.path + "/shortcuts.default";
-}
-
-function enable() {
-    const seat = Clutter.get_default_backend().get_default_seat()
-    const keymap = seat.get_keymap()
-    app = new App(ExtensionUtils.getSettings(), seat, keymap)
-    app.enable()
-}
-
-function disable() {
-    app.disable()
-    app = null
-}
-
-// export default class RunOrRaiseExtension {
-//     init(options) {
-//         conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
-//         default_conf_path = options.path + "/shortcuts.default";
-//     }
-
-//     enable() {
-//         const seat = Clutter.get_default_backend().get_default_seat()
-//         const keymap = seat.get_keymap()
-//         app = new App(ExtensionUtils.getSettings(), seat, keymap)
-//         app.enable()
-//     }
-
-//     disable() {
-//         app.disable()
-//         app = null
-//     }
+// function init(options) {
+//     conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
+//     default_conf_path = options.path + "/shortcuts.default";
 // }
+
+// function enable() {
+//     const seat = Clutter.get_default_backend().get_default_seat()
+//     const keymap = seat.get_keymap()
+//     app = new App(ExtensionUtils.getSettings(), seat, keymap)
+//     app.enable()
+// }
+
+// function disable() {
+//     app.disable()
+//     app = null
+// }
+
+export default class RunOrRaiseExtension extends Extension {
+    constructor(metadata) {
+        super(metadata)
+        conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
+        default_conf_path = this.metadata.path + "/shortcuts.default";
+    }
+
+    enable() {
+        const seat = Clutter.get_default_backend().get_default_seat()
+        const keymap = seat.get_keymap()
+        app = new App(this.getSettings(), seat, keymap)
+        app.enable()
+    }
+
+    disable() {
+        app.disable()
+        app = null
+    }
+}

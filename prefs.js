@@ -1,13 +1,20 @@
-const Gtk = imports.gi.Gtk;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const GLib = imports.gi.GLib;
-const Convenience = Me.imports.convenience;
+// const Gtk = imports.gi.Gtk;
+import Gtk from 'gi://Gtk?version=4.0';
+// const ExtensionUtils = imports.misc.extensionUtils;
+// const Me = ExtensionUtils.getCurrentExtension();
+// const GLib = imports.gi.GLib;
+import GLib from 'gi://GLib';
+// const Convenience = Me.imports.convenience;
+import * as Convenience from './convenience.js';
 
-function init() {
-}
 
-function buildPrefsWidget() {
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+
+export default class ExamplePreferences extends ExtensionPreferences {
+
+
+    getPreferencesWidget() {
         let convData = Convenience.getSchemaData();
         let vbox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -27,6 +34,7 @@ function buildPrefsWidget() {
         });
         return vbox;
     }
+}
 
 function booleanBox(data, settings) {
         const vbox = new Gtk.Box({

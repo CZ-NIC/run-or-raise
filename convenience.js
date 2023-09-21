@@ -24,16 +24,18 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-const GIRepository = imports.gi.GIRepository;
+// const GIRepository = imports.gi.GIRepository;
+import GIRepository from 'gi://GIRepository?version=4.0';
 GIRepository.Repository.prepend_search_path("/usr/lib/gnome-shell");
 GIRepository.Repository.prepend_library_path("/usr/lib/gnome-shell");
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
+// const Gio = imports.gi.Gio;
+// const GLib = imports.gi.GLib;
+import GLib from 'gi://GLib';
 
-const ExtensionUtils = imports.misc.extensionUtils;
+// const ExtensionUtils = imports.misc.extensionUtils;
 
 function getSchemaData(schema) {
-    const Settings = ExtensionUtils.getSettings()
+    const Settings = this.getSettings()
     const schemaObj = Settings["settings_schema"]
     const basicTypes = ["b", "y", "n", "q", "i", "u", "x", "t", "h", "d", "s", "o", "g", "?"].map(function(type){return {type: type, vt :  new GLib.VariantType(type)}});
     const allKeys = schemaObj.list_keys().map(function(keyName) {
