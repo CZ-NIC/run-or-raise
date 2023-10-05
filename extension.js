@@ -19,12 +19,12 @@ import {parseLine} from './lib/action.js';
  * @typedef {import('./lib/accelerator.js')}
 */
 //const Accelerator = Me.imports.lib.accelerator.Accelerator
-import * as Accelerator from './lib/accelerator.js';
+import {Accelerator} from './lib/accelerator.js';
 /**
  * @typedef {import('./lib/mode.js').Mode} Mode
 */
 // const Mode = Me.imports.lib.mode.Mode
-import * as Mode from './lib/mode.js';
+import {Mode} from './lib/mode.js';
 /**
  * @typedef {import('./lib/static.js')}
 */
@@ -36,10 +36,6 @@ import {arraysEqual, DefaultMap} from './lib/static.js';
  * @typedef {boolean[]} State Array of true/false
  */
 let conf_path, default_conf_path
-/**
- * @type {App}
- */
-let app
 
 
 /**
@@ -341,12 +337,12 @@ export default class RunOrRaiseExtension extends Extension {
     enable() {
         const seat = Clutter.get_default_backend().get_default_seat()
         const keymap = seat.get_keymap()
-        app = new App(this.getSettings(), seat, keymap)
-        app.enable()
+        this.app = new App(this.getSettings(), seat, keymap)
+        this.app.enable()
     }
 
     disable() {
-        app.disable()
-        app = null
+        this.app.disable()
+        this.app = null
     }
 }
