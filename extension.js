@@ -14,7 +14,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
  * @typedef {import('./lib/action.js')}
 */
 //const Action = Me.imports.lib.action.Action
-import * as Action from './lib/action.js';
+import {parseLine} from './lib/action.js';
 /**
  * @typedef {import('./lib/accelerator.js')}
 */
@@ -149,7 +149,7 @@ class App {
                 if (line[0] === "#" || line.trim() === "") {  // skip empty lines and comments
                     continue
                 }
-                const action = Action.parseLine(line, this)
+                const action = parseLine(line, this)
                 this.accelerators.get(action.shortcut).push(action)
             } catch (e) {
                 this.display(`Cannot parse line: ${line}.${e}`)
