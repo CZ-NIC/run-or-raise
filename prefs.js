@@ -6,16 +6,26 @@ import Gtk from 'gi://Gtk?version=4.0';
 import GLib from 'gi://GLib';
 // const Convenience = Me.imports.convenience;
 import * as Convenience from './convenience.js';
-
-
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import Adw from 'gi://Adw';
 
 
-export default class ExamplePreferences extends ExtensionPreferences {
+export default class RunOrRaisePreferences extends ExtensionPreferences {
 
+    fillPreferencesWindow(window) {
+        window._settings = this.getSettings();
 
-    getPreferencesWidget() {
-        let convData = Convenience.getSchemaData();
+        const page = new Adw.PreferencesPage();
+
+        const group = new Adw.PreferencesGroup();
+        group.add(this.getWidget())
+        page.add(group);
+
+        window.add(page);
+    }
+
+    getWidget() {
+        let convData = Convenience.getSchemaData(this.getSettings());
         let vbox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             margin_top: 15,
@@ -25,7 +35,7 @@ export default class ExamplePreferences extends ExtensionPreferences {
         editorButton.connect("clicked", function() {
             GLib.spawn_command_line_sync("xdg-open .config/run-or-raise/shortcuts.conf");
         });
-        let settingLabel = new Gtk.Label({label: "Edit the file to add your shortcuts, then reload this extension (no logout required)"});
+        let settingLabel = new Gtk.Label({label: "Edit the file to add your shortcuts, then reload this extension (no logout required)", wrap: true});
 
         vbox.append(settingLabel);
         vbox.append(editorButton);
@@ -37,7 +47,7 @@ export default class ExamplePreferences extends ExtensionPreferences {
 }
 
 function booleanBox(data, settings) {
-        const vbox = new Gtk.Box({
+        const hbox = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             margin_top: 15,
             spacing: 10
@@ -48,7 +58,7 @@ function booleanBox(data, settings) {
         switcher.connect('notify::active', function(o) {
             settings.set_boolean(data.name, o.active)
         })
-        vbox.append(switcher)
-        vbox.append(label)
-        return vbox
+        hbox.append(switcher)
+        hbox.append(label)
+        return hbox
 }
