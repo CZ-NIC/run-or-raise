@@ -13,8 +13,9 @@ With the emergence of Wayland over X.org in Ubuntu 17.10, we can't reliably use 
 ) (official, easy, not always up to date)
 
 OR
-* put this dir to `/home/$USER/.local/share/gnome-shell/extensions`
-* enable in `gnome-shell-extension-prefs` panel
+* clone this repo to `/home/$USER/.local/share/gnome-shell/extensions/run-or-raise@edvard.cz`
+* reload extensions (e.g. log out in wayland - [details here](https://gjs.guide/extensions/development/creating.html#testing-the-extension))
+* enable run-or-raise in `gnome-shell-extension-prefs` panel
 * in the extension preferences, you may edit `shortcuts.conf` file to use your own shortcuts
 * you may load new shortcuts without restarting, just change the file `shortcuts.conf`, and disable and enable.
 
@@ -181,7 +182,7 @@ If nothing registered yet, register the current window. Next time raise it unles
 <Super>o:raise-or-register
 ```
 #### `raise-or-register(0)`
-If nothing registered yet, register the current window. Next time raise it unless the window is closed or unless remapped with `raise(the same number)`. It it thus a combination of `register`, `raise` and `raise-or-register`.
+If nothing has been registered yet, register the current window. Next time, raise it, unless the window is closed or has been remapped with `register(the same number)`. Thus, it is a combination of `register`, `raise`, and `raise-or-register`.
 #### `verbose`
 Popups debug details via `notify-send`. (Normally it seems launched commands pipe the output to the `/var/log/syslog`.)
 
