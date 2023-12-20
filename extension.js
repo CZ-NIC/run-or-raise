@@ -14,17 +14,17 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
  * @typedef {import('./lib/action.js')}
 */
 //const Action = Me.imports.lib.action.Action
-import * as Action from './lib/action.js';
+import {Action} from './lib/action.js';
 /**
  * @typedef {import('./lib/accelerator.js')}
 */
 //const Accelerator = Me.imports.lib.accelerator.Accelerator
-import * as Accelerator from './lib/accelerator.js';
+import {Accelerator} from './lib/accelerator.js';
 /**
  * @typedef {import('./lib/mode.js').Mode} Mode
 */
 // const Mode = Me.imports.lib.mode.Mode
-import * as Mode from './lib/mode.js';
+import {Mode} from './lib/mode.js';
 /**
  * @typedef {import('./lib/static.js')}
 */
