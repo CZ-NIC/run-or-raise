@@ -25,17 +25,12 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // const GIRepository = imports.gi.GIRepository;
-import GIRepository from 'gi://GIRepository?version=4.0';
+import GIRepository from 'gi://GIRepository';
 GIRepository.Repository.prepend_search_path("/usr/lib/gnome-shell");
 GIRepository.Repository.prepend_library_path("/usr/lib/gnome-shell");
-// const Gio = imports.gi.Gio;
-// const GLib = imports.gi.GLib;
 import GLib from 'gi://GLib';
 
-// const ExtensionUtils = imports.misc.extensionUtils;
-
-function getSchemaData(schema) {
-    const Settings = this.getSettings()
+export function getSchemaData(Settings) {    
     const schemaObj = Settings["settings_schema"]
     const basicTypes = ["b", "y", "n", "q", "i", "u", "x", "t", "h", "d", "s", "o", "g", "?"].map(function(type){return {type: type, vt :  new GLib.VariantType(type)}});
     const allKeys = schemaObj.list_keys().map(function(keyName) {

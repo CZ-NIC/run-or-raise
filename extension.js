@@ -14,7 +14,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
  * @typedef {import('./lib/action.js')}
 */
 //const Action = Me.imports.lib.action.Action
-import {Action} from './lib/action.js';
+import {parseLine} from './lib/action.js';
 /**
  * @typedef {import('./lib/accelerator.js')}
 */
@@ -36,10 +36,6 @@ import {arraysEqual, DefaultMap} from './lib/static.js';
  * @typedef {boolean[]} State Array of true/false
  */
 let conf_path, default_conf_path
-/**
- * @type {App}
- */
-let app
 
 
 /**
@@ -149,7 +145,7 @@ class App {
                 if (line[0] === "#" || line.trim() === "") {  // skip empty lines and comments
                     continue
                 }
-                const action = Action.parseLine(line, this)
+                const action = parseLine(line, this)
                 this.accelerators.get(action.shortcut).push(action)
             } catch (e) {
                 this.display(`Cannot parse line: ${line}.${e}`)
@@ -341,12 +337,12 @@ export default class RunOrRaiseExtension extends Extension {
     enable() {
         const seat = Clutter.get_default_backend().get_default_seat()
         const keymap = seat.get_keymap()
-        app = new App(this.getSettings(), seat, keymap)
-        app.enable()
+        this.app = new App(this.getSettings(), seat, keymap)
+        this.app.enable()
     }
 
     disable() {
-        app.disable()
-        app = null
+        this.app.disable()
+        this.app = null
     }
 }

@@ -6,49 +6,69 @@ import Gtk from 'gi://Gtk?version=4.0';
 import GLib from 'gi://GLib';
 // const Convenience = Me.imports.convenience;
 import * as Convenience from './convenience.js';
-
-
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import Gio from 'gi://Gio';
+import Adw from 'gi://Adw';
 
 
-export default class ExamplePreferences extends ExtensionPreferences {
+export default class RunOrRaisePreferences extends ExtensionPreferences {
 
+    fillPreferencesWindow(window) {
+        window._settings = this.getSettings();
 
-    getPreferencesWidget() {
-        let convData = Convenience.getSchemaData();
-        let vbox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-            margin_top: 15,
-            spacing: 10
+        const page = new Adw.PreferencesPage();
+
+        page.add(this.getShortcutConfig());
+        page.add(this.getBehaviourConfig());
+
+        window.add(page);
+    }
+
+    getShortcutConfig() {
+        const group = new Adw.PreferencesGroup({
+            title: "Shortcuts",
         });
-        let editorButton = new Gtk.Button({label: "Open shortcuts.conf file"});
+
+        const row = new Adw.ActionRow({
+            title: 'Open shortcuts.conf file',
+            subtitle: 'Edit the file to add your shortcuts, then reload this extension (no logout required)',
+        });
+        let editorButton = new Gtk.Button({
+            iconName: "document-open-symbolic", 
+            valign: Gtk.Align.CENTER,
+            halign: Gtk.Align.CENTER
+        });
         editorButton.connect("clicked", function() {
             GLib.spawn_command_line_sync("xdg-open .config/run-or-raise/shortcuts.conf");
         });
-        let settingLabel = new Gtk.Label({label: "Edit the file to add your shortcuts, then reload this extension (no logout required)"});
+        row.add_suffix(editorButton);
+        row.set_activatable_widget(editorButton);
 
-        vbox.append(settingLabel);
-        vbox.append(editorButton);
-        convData.basicSchema.forEach(function(data) {
-            vbox.append(booleanBox(data, convData.settings));
+        group.add(row);
+        
+        return group;
+    }
+
+    getBehaviourConfig() {
+        const group = new Adw.PreferencesGroup({
+            title: "Behaviour",
+            description: "Configure various behaviours of run or raise"
         });
-        return vbox;
+        let convData = Convenience.getSchemaData(this.getSettings());
+        
+        convData.basicSchema.forEach(function(data) {
+            group.add(booleanBox(data, convData.settings));
+        });
+        
+        return group;
     }
 }
 
 function booleanBox(data, settings) {
-        const vbox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            margin_top: 15,
-            spacing: 10
-        })
-        const switcher = new Gtk.Switch({active: data.value})
-        const text = data.summary + (data.description? ": " + data.description : "")
-        const label = new Gtk.Label({label: text})
-        switcher.connect('notify::active', function(o) {
-            settings.set_boolean(data.name, o.active)
-        })
-        vbox.append(switcher)
-        vbox.append(label)
-        return vbox
+        const row = new Adw.SwitchRow({
+            title: data.summary,
+            subtitle: data.description ? data.description : "",
+        });
+        settings.bind(data.name, row, 'active', Gio.SettingsBindFlags.DEFAULT);
+        return row
 }
