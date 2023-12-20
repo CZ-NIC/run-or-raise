@@ -33,7 +33,7 @@ Caveats:
 OR
 * clone this repo to `/home/$USER/.local/share/gnome-shell/extensions/run-or-raise@edvard.cz`
 * reload extensions (e.g. log out in wayland - [details here](https://gjs.guide/extensions/development/creating.html#testing-the-extension))
-* enable run-or-raise in `gnome-shell-extension-prefs` panel
+* enable run-or-raise in `gnome-extensions-app` panel
 * in the extension preferences, you may edit `shortcuts.conf` file to use your own shortcuts
 * you may load new shortcuts without restarting, just change the file `shortcuts.conf`, and disable and enable.
 
@@ -54,7 +54,7 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 
 ### Shortcut
 
-Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character, like `<Shift>a`, `<Shift><Super>a` or simple `a`.
+Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character (keysym), like `<Shift>a`, `<Shift><Super>a`, simple `a` or `<Super>slash`.
 
 For custom shortcuts, I recommended using mostly combinations containing the modifier `<Super>` as this normally indicates global shortcuts. In the opposition to `<Shift>` which is semantically reserved for letter case `a/A`, `<Alt>` for underlined letters and `<Ctrl>` for various application-defined actions.
 
@@ -253,9 +253,14 @@ Another occasion you'd use regulars would be the case when you'd like to have mu
 <Super><Ctrl>KP_4,/opt/netbeans/bin/netbeans,,/(NetBeans IDE|PyCharm)/
 ```
 
+To run a command as a sudo, try simple `pkexec` program that raises the password dialogue. For a repetitive task, familiarise yourself with the system sudoers file.
+```
+<Super>r,bash -c 'notify-send "Root folder" "`pkexec ls /root/`"'
+```
+
 # Tips
 * For the examples, see [shortcuts.default](shortcuts.default) file.
-* You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch.
+* You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch. Ex: `gnome-extensions disable run-or-raise@edvard.cz && gnome-extensions enable run-or-raise@edvard.cz`
 * In the case of segfault, check no conflicting key binding [is present](https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994), then submit an issue.
 
 ## Developer guide

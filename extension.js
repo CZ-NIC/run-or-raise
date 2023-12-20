@@ -1,34 +1,13 @@
-// const Main = imports.ui.main;
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-// const { Shell, St, Gio, Clutter } = imports.gi
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
-// const ExtensionUtils = imports.misc.extensionUtils
-// const Me = ExtensionUtils.getCurrentExtension()
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 // Local imports
-/**
- * @typedef {import('./lib/action.js')}
-*/
-//const Action = Me.imports.lib.action.Action
 import {parseLine} from './lib/action.js';
-/**
- * @typedef {import('./lib/accelerator.js')}
-*/
-//const Accelerator = Me.imports.lib.accelerator.Accelerator
 import {Accelerator} from './lib/accelerator.js';
-/**
- * @typedef {import('./lib/mode.js').Mode} Mode
-*/
-// const Mode = Me.imports.lib.mode.Mode
-import {Mode} from './lib/mode.js';
-/**
- * @typedef {import('./lib/static.js')}
-*/
-// const { arraysEqual, DefaultMap } = Me.imports.lib.static
 import {arraysEqual, DefaultMap} from './lib/static.js';
 
 // Typedef
