@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 33
+- Gio instead of misc/util spawnCommandLine #70 (syslog cleaned up)
+
 ## 32
 - raise-or-register with index #61
 

@@ -10,20 +10,20 @@ Several years ago, OS creators finally realized that efficiency and let the user
 
 With the emergence of Wayland over X.org, we can't reliably use good old [`xbindkeys`](https://wiki.archlinux.org/index.php/Xbindkeys) and [`jumpapp`](https://github.com/mkropat/jumpapp) to master shortcuts. Here is a gnome-shell extension that let you migrate your favourite shortcuts to the `shortcuts.conf` file.
 
-## Barebones “GNOME Shell native” alternative
-
-Note that GNOME Shell supports a _basic_ run-or-raise workflow out of the box! In case this extension is broken or you cannot / don’t want to use it,
-
-1. Pin your favorite apps to the Dash (`Activities` → `Right click` on open app → `Pin to Dash`)
-2. Don’t let the default <kbd><Super+N></kbd> bindings cause you a left thumb [RSI](https://en.wikipedia.org/wiki/Repetitive_strain_injury)! To re-bind them, set dconf values `org.gnome.shell.keybindings` / `switch-to-application-N` to your desired keyboard shortcut (where N is 1..9), replacing / adding to the default binding.
-3. Never re-order your pinned apps!
-4. Enjoy a basic run-or-raise in Shell with no extension
-
-Caveats:
-
-- Limited to 9 apps! Choose wisely 😄.
-- No wmclass regex support; limited to static `StartupWMClass` in XDG `.desktop` files
-- No [run-or-raise "Modes"](#modes)
+# Contents
+- [Installation](#installation)
+- [Configuration](#configuration)
+  * [How to create a shortcut](#how-to-create-a-shortcut)
+    + [Shortcut](#shortcut)
+    + [Action: `command`, `wm_class` and `title`](#action-command-wm_class-and-title)
+      - [Understanding `title` and `wm_class`](#understanding-title-and-wm_class)
+      - [Comparison of different matching approaches](#comparison-of-different-matching-approaches)
+    + [Modes](#modes)
+  * [Examples](#examples)
+- [Tips](#tips)
+  * [Barebones “GNOME Shell native” alternative](#barebones-gnome-shell-native-alternative)
+  * [Developer guide](#developer-guide)
+    + [Debugging](#debugging)
 
 # Installation
 
@@ -262,6 +262,16 @@ To run a command as a sudo, try simple `pkexec` program that raises the password
 * For the examples, see [shortcuts.default](shortcuts.default) file.
 * You may change the configuration file on the fly. Just disable & enable the extension, shortcuts load again from scratch. Ex: `gnome-extensions disable run-or-raise@edvard.cz && gnome-extensions enable run-or-raise@edvard.cz`
 * In the case of segfault, check no conflicting key binding [is present](https://github.com/CZ-NIC/run-or-raise/pull/1#issuecomment-350951994), then submit an issue.
+
+## Barebones “GNOME Shell native” alternative
+
+Note that GNOME Shell supports a _basic_ run-or-raise workflow out of the box! To enjoy a basic run-or-raise with no extension:
+
+1. Pin your favorite apps to the Dash (`Activities` → `Right click` on open app → `Pin to Dash`).
+2. Don’t let the default <kbd><Super+number></kbd> bindings cause you a left thumb [RSI](https://en.wikipedia.org/wiki/Repetitive_strain_injury)! To re-bind them, set dconf values `org.gnome.shell.keybindings` / `switch-to-application-N` to your desired keyboard shortcut (where N is 1..9), replacing / adding to the default binding.
+3. Never re-order your pinned apps.
+
+Caveats: Limited to 9 apps; no wmclass regex support; limited to static `StartupWMClass` in XDG `.desktop` files; no [modes](#modes).
 
 ## Developer guide
 
