@@ -162,7 +162,7 @@ Switch back to the previous window when focused. If a shortcut has no but a sing
 #### `move-window-to-active-workspace`
 Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
 #### `center-mouse-to-focused-window`
-After focus move mouse to window center
+Moves mouse to the center of the newly focused window (unless cursor is not in the window area already).
 #### `always-run`
 Both runs the command and raises a window
 ```
