@@ -54,7 +54,7 @@ When you trigger a shortcut it lets you cycle amongst open instances of the appl
 
 ### Shortcut
 
-Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character (keysym), like `<Shift>a`, `<Shift><Super>a`, simple `a` or `<Super>slash`.
+Shortcut consists of an arbitrary number of modifiers (angle brackets) and a character, like `<Shift>a`, `<Shift><Super>a`, simple `a` or `<Super>slash`. Character might be either a keysym (`a`, `acute`) or a keycode in the hex format, ex: letter *a* with the keycode 38 is noted `0x26`.
 
 For custom shortcuts, I recommended using mostly combinations containing the modifier `<Super>` as this normally indicates global shortcuts. In the opposition to `<Shift>` which is semantically reserved for letter case `a/A`, `<Alt>` for underlined letters and `<Ctrl>` for various application-defined actions.
 
@@ -66,7 +66,7 @@ Possible modifiers:
 * mods
   * `<Mod1>`, `<Mod2>`, `<Mod3>`, `<Mod4>`, `<Mod5>`
   * consult `xmodmap` to see the overview of the keys that are mapped to mods
-  * consult `xev` to determine key symbols you have mapped
+  * consult `xev`/`wev` to determine key symbols you have mapped
   * ex: if the key <kbd>Alt Gr</kbd> corresponds with the key symbol `<ISO_Level3_Shift>` that is bound to **mod5**, you would use `<Mod5>` to create its shortcuts
   * ex: imagine you have both `<Super>` and `<Hyper>` on **mod4**. You bind them all by `<Super>i`, `<Hyper>i`, `<Mod4>i` shortcuts. As they are the same on the internal Gnome-level, only the first shortcut grabs the accelerator, the latter defined will not work. For more information, consult [Gnome/Mutter/core/meta-accel-parse.c](https://gitlab.gnome.org/GNOME/mutter/-/blob/main/src/core/meta-accel-parse.c) source code.
 * non-standard locks: Not proper Gnome shortcuts implemented by the extension allow to control the accelerators being listened to depending on the keyboard locks state.
@@ -91,9 +91,23 @@ Layered shortcuts are possible. After the shortcut is hit, you may specify one o
 <Super>e <Super>e e,notify-send Launched "<Super>e e"
 ```
 
-If you need to discover a [keysym](https://wiki.linuxquestions.org/wiki/List_of_keysyms), I recommend the `xev` program again.
+If you need to discover a [keysym](https://wiki.linuxquestions.org/wiki/List_of_keysyms) (or at [xkbcommon.org](https://xkbcommon.org/doc/current/xkbcommon-keysyms_8h.html)), I recommend the `xev`/`wev` program again.
+
 ```
-<Super>grave,notify-send Using backtick in the shortcut: `
+<Super>grave,notify-send "Using backtick in the shortcut: `"
+```
+
+When in trouble, use keycode in hex form instead of a keysym. In this example, we recognize 49 is the keycode of the backtick (31 in hex).
+
+```bash
+$ wev  # type backtick key
+[14:     wl_keyboard] key: serial: 23425; time: 8592750; key: 49; state: 0 (released)     sym: grave        (96), utf8: ''
+```
+
+Hence the hex form is `0x31`:
+
+```
+<Super>0x31,notify-send "Using backtick keycode in the shortcut: `"
 ```
 
 ### Action: `command`, `wm_class` and `title`

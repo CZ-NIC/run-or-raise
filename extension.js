@@ -1,14 +1,14 @@
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import Shell from 'gi://Shell';
-import St from 'gi://St';
-import Gio from 'gi://Gio';
-import Clutter from 'gi://Clutter';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js'
+import Shell from 'gi://Shell'
+import St from 'gi://St'
+import Gio from 'gi://Gio'
+import Clutter from 'gi://Clutter'
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js'
 
 // Local imports
-import {parseLine} from './lib/action.js';
-import {Accelerator} from './lib/accelerator.js';
-import {arraysEqual, DefaultMap} from './lib/static.js';
+import { parseLine } from './lib/action.js'
+import { Accelerator } from './lib/accelerator.js'
+import { arraysEqual, DefaultMap } from './lib/static.js'
 
 // Typedef
 /**
@@ -35,11 +35,11 @@ Clutter.KEY_Meta_L, Clutter.KEY_Meta_R,
 class App {
 
     display(text, title = "") {
-        Main.notify("Run-or-raise " + title, text)
+        Main.notify("Run-or-raise " + title, String(text))
     }
 
-    error(text) {
-        this.display(text, "Error")
+    error(text, title = "") {
+        this.display(text, title || "Error")
         throw new Error("Run-or-raise> " + text)
     }
 
@@ -83,7 +83,7 @@ class App {
     }
 
     enable() {
-        /* XX Note Ubuntu 20.10: Using modifiers <Mod3> – <Mod5> worked good for me, <Mod2> (xmodmap shows a numlock)
+        /* XX Note Ubuntu 20.10: Using modifiers <Mod3> – <Mod5> worked well for me, <Mod2> (xmodmap shows a numlock)
         consumed the shortcut when Num_Lock (nothing printed out) but it seems nothing was triggered here.
 
         Keymap.get_modifier_state() returns an int 2^x where x is 8 positions of xmodmap*/
@@ -96,24 +96,28 @@ class App {
         this.handler_accelerator_activated = global.display.connect(
             'accelerator-activated',
             (display_, action, deviceId, timestamp) => {
-                const accelerator = this.accelerator_map.get(action)
-                if (!accelerator) {
-                    // ex: Fn+volume_up for an unknown reason ends up here
-                    return
-                }
-                if (this.handler_layered) {
-                    this.layer_finished()
-
-                    if (!accelerator.is_layered) {
-                        // another accelerator activated while handling a layered shortcut → ignore
-                        return false
+                try {
+                    const accelerator = this.accelerator_map.get(action)
+                    if (!accelerator) {
+                        // ex: Fn+volume_up for an unknown reason ends up here
+                        return
                     }
-                }
-                const layered = accelerator.trigger()
-                if (layered.length) { // start layered mode
-                    this.layered_mode_start(layered)
-                } else {
-                    this.layered_mode_stop()
+                    if (this.handler_layered) {
+                        this.layer_finished()
+
+                        if (!accelerator.is_layered) {
+                            // another accelerator activated while handling a layered shortcut → ignore
+                            return false
+                        }
+                    }
+                    const layered = accelerator.trigger()
+                    if (layered.length) { // start layered mode
+                        this.layered_mode_start(layered)
+                    } else {
+                        this.layered_mode_stop()
+                    }
+                } catch (e) {
+                    this.error(e, "Accelerator failed")
                 }
             }
         )
@@ -190,7 +194,7 @@ class App {
                 s = Shell.get_file_contents_utf8_sync(default_conf_path); // it seems confpath file is not ready yet, reading defaultconfpath
             } catch (e) {
                 this.display("Failed to create the default file")
-                return;
+                return
             }
         }
         return s.split("\n")
@@ -288,29 +292,11 @@ class App {
     }
 }
 
-// Classes launched by gnome-shell
-// function init(options) {
-//     conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
-//     default_conf_path = options.path + "/shortcuts.default";
-// }
-
-// function enable() {
-//     const seat = Clutter.get_default_backend().get_default_seat()
-//     const keymap = seat.get_keymap()
-//     app = new App(ExtensionUtils.getSettings(), seat, keymap)
-//     app.enable()
-// }
-
-// function disable() {
-//     app.disable()
-//     app = null
-// }
-
 export default class RunOrRaiseExtension extends Extension {
     constructor(metadata) {
         super(metadata)
-        conf_path = ".config/run-or-raise/shortcuts.conf"; // CWD seems to be HOME
-        default_conf_path = this.metadata.path + "/shortcuts.default";
+        conf_path = ".config/run-or-raise/shortcuts.conf" // CWD is be HOME
+        default_conf_path = this.metadata.path + "/shortcuts.default"
     }
 
     enable() {
