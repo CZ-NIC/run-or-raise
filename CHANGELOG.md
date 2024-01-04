@@ -1,16 +1,14 @@
 # CHANGELOG
 
-## 34
+## 34 (2024-01-04)
 - fix: layered regex shortcut
 - center-mouse-to-focused-window: Don't move pointer if it's already in the window area
-
-## 33
 - Gio instead of misc/util spawnCommandLine #70 (syslog cleaned up)
 
-## 32
+## 32 (2023-11-03)
 - raise-or-register with index #61
 
-## 31
+## 31 (2023-05-16)
 - Gnome 44 X11 support (removing Gdk)
 
 ## 29 (2023-02-20)

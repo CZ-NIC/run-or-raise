@@ -297,7 +297,7 @@ How to implement a new mode?
   * you may need [gjs.guide](https://gjs.guide/extensions), [gnome-shell source](https://gitlab.gnome.org/GNOME/gnome-shell/-/tree/main/js/) or [gjs-docs.gnome.org](https://gjs-docs.gnome.org)
 * document here in the [README.md](README.md)
 * put a description into [CHANGELOG.md](CHANGELOG.md) file
-* raise a version in [metadata.json](metadata.json)
+* ~~raise a version in [metadata.json](metadata.json)~~
 * create a pull request with (preferably) a single commit
 
 ### Debugging
