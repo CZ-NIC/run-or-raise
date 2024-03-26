@@ -239,7 +239,7 @@ This line cycles any open gnome-terminal OR if not found, launches a new one.
 <Super>r,gnome-terminal,,
 ```
 
-If you want to be sure that your browser won't be focused when you're on the page having "gnome-terminal" in the title, you may want to match running application by `wm_class = Gnome-terminal` on Ubuntu 17.10 or by `wm_class = gnome-terminal-server` on Arch... just check yourself by Alt+F2/lg/Windows everytime `wm_class` is needed.
+If you want to be sure that your browser won't be focused when you're on the page having "gnome-terminal" in the title, you may want to match running application by `wm_class = Gnome-terminal` (Ubuntu on Xorg) or by `wm_class = gnome-terminal-server` (Ubuntu on Wayland or Arch)... just check yourself by Alt+F2/lg/Windows everytime `wm_class` is needed.
 
 ```
 <Super>r,gnome-terminal,Gnome-terminal,
@@ -285,7 +285,7 @@ Note that GNOME Shell supports a _basic_ run-or-raise workflow out of the box! T
 2. Don’t let the default <kbd><Super+number></kbd> bindings cause you a left thumb [RSI](https://en.wikipedia.org/wiki/Repetitive_strain_injury)! To re-bind them, set dconf values `org.gnome.shell.keybindings` / `switch-to-application-N` to your desired keyboard shortcut (where N is 1..9), replacing / adding to the default binding.
 3. Never re-order your pinned apps.
 
-Caveats: Limited to 9 apps; no wmclass regex support; limited to static `StartupWMClass` in XDG `.desktop` files; no [modes](#modes).
+Caveats: Limited to 9 apps; no wmclass, regex, layered shortcuts, or [modes](#modes) support. Limited to static `StartupWMClass` in XDG `.desktop` files.
 
 ## Developer guide
 
