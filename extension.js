@@ -6,9 +6,10 @@ import Clutter from 'gi://Clutter'
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js'
 
 // Local imports
-import { parseLine } from './lib/action.js'
+import { parseLine, Action } from './lib/action.js'
 import { Accelerator } from './lib/accelerator.js'
 import { arraysEqual, DefaultMap } from './lib/static.js'
+import { DBUS } from './lib/dbus.js'
 
 // Typedef
 /**
@@ -77,7 +78,7 @@ class App {
         this.layered_accelerators = new DefaultMap((shortcut) => new Accelerator(shortcut, this))
 
         /**
-         * @type {Accelerator[]}
+         * @type {Set<Accelerator>}
          */
         this.unblock_later = new Set
     }
@@ -304,10 +305,31 @@ export default class RunOrRaiseExtension extends Extension {
         const keymap = seat.get_keymap()
         this.app = new App(this.getSettings(), seat, keymap)
         this.app.enable()
+
+        if (this.app.settings.get_boolean("dbus")) {
+            this._dbus = Gio.DBusExportedObject.wrapJSObject(DBUS, this)
+            this._dbus.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/RunOrRaise')
+        }
     }
 
     disable() {
-        this.app.disable()
+        this.app?.disable()
         this.app = null
+
+        this._dbus?.flush()
+        this._dbus?.unexport()
+        this._dbus = null
+    }
+
+    /**
+     * Invoke with
+     *          gdbus call --session --dest org.gnome.Shell
+     *           --object-path /org/gnome/Shell/Extensions/RunOrRaise
+     *           --method org.gnome.Shell.Extensions.RunOrRaise.Call ",firefox,,"
+     * @param {string} line Ex: ",firefox,," will run or raise a firefox window
+     */
+    Call(line) {
+        parseLine(line, this.app).trigger()
+        return "Success"
     }
 }

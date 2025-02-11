@@ -19,6 +19,7 @@ With the emergence of Wayland over X.org, we can't reliably use good old [`xbind
       - [Understanding `title` and `wm_class`](#understanding-title-and-wm_class)
       - [Comparison of different matching approaches](#comparison-of-different-matching-approaches)
     + [Modes](#modes)
+  * [DBus](#dbus)
   * [Examples](#examples)
 - [Tips](#tips)
   * [Barebones “GNOME Shell native” alternative](#barebones-gnome-shell-native-alternative)
@@ -218,6 +219,14 @@ If nothing has been registered yet, register the current window. Next time, rais
 #### `verbose`
 Popups debug details via `notify-send`. (Normally it seems launched commands pipe the output to the `/var/log/syslog`.)
 
+## DBus
+
+In the extension settings, you may allow listening on DBus. Then, you can invoke the commands from the shell. The following example would start a firefox instance. Note there is no shortcut mentioned as the shortcuts are ignored.
+
+```bash
+$ gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell/Extensions/RunOrRaise --method org.gnome.Shell.Extensions.RunOrRaise.Call ",firefox"
+('Success',)
+```
 
 ## Examples
 

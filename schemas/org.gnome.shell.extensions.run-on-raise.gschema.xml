@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema path="/org/gnome/shell/extensions/run-or-raise/" id="org.gnome.shell.extensions.run-or-raise">
+    <key type="b" name="dbus">
+      <default>false</default>
+      <summary>Listen on DBus</summary>
+      <description>Invoke the functionality through the DBus (restart the extension to take effect).
+      Ex: `gdbus call --session --dest org.gnome.Shell
+      --object-path /org/gnome/Shell/Extensions/RunOrRaise
+      --method org.gnome.Shell.Extensions.RunOrRaise.Call ",firefox,,"`</description>
+    </key>
     <key type="b" name="switch-back-when-focused">
       <default>false</default>
       <summary>Switch back to previous window when focused</summary>
