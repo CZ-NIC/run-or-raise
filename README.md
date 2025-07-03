@@ -291,7 +291,7 @@ To run a command as a sudo, try simple `pkexec` program that raises the password
 Note that GNOME Shell supports a _basic_ run-or-raise workflow out of the box! To enjoy a basic run-or-raise with no extension:
 
 1. Pin your favorite apps to the Dash (`Activities` → `Right click` on open app → `Pin to Dash`).
-2. Don’t let the default <kbd><Super+number></kbd> bindings cause you a left thumb [RSI](https://en.wikipedia.org/wiki/Repetitive_strain_injury)! To re-bind them, set dconf values `org.gnome.shell.keybindings` / `switch-to-application-N` to your desired keyboard shortcut (where N is 1..9), replacing / adding to the default binding.
+2. Don’t let the default <kbd><Super+number></kbd> bindings cause you a left thumb [RSI](https://en.wikipedia.org/wiki/Repetitive_strain_injury)! To re-bind them, set dconf values to your desired keyboard shortcut (where `N` is `1..9`): `gsettings set "org.gnome.shell.keybindings" "switch-to-application-N" "['<Your+Command>']"`.
 3. Never re-order your pinned apps.
 
 Caveats: Limited to 9 apps; no wmclass, regex, layered shortcuts, or [modes](#modes) support. Limited to static `StartupWMClass` in XDG `.desktop` files.
