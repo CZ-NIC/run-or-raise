@@ -24,9 +24,6 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-import GIRepository from 'gi://GIRepository';
-GIRepository.Repository.prepend_search_path("/usr/lib/gnome-shell");
-GIRepository.Repository.prepend_library_path("/usr/lib/gnome-shell");
 import GLib from 'gi://GLib';
 
 export function getSchemaData(Settings) {
