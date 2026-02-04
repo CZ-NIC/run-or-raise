@@ -14,11 +14,6 @@
       <summary>Switch back to previous window when focused</summary>
       <description></description>
     </key>
-    <key type="b" name="switch-back-when-focused-all-monitors">
-      <default>false</default>
-      <summary>Switch back across all monitors</summary>
-      <description>When switch-back-when-focused is enabled, include windows from all monitors instead of only the current one.</description>
-    </key>
     <key type="b" name="minimize-when-unfocused">
       <default>false</default>
       <summary>Minimize when unfocusing</summary>
