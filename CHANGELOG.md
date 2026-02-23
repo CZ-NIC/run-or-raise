@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Unreleased
+- Add parameter for the `switch-back-when-focused` mode that will cause the extension to switch back to a window regardless of what monitor it is on: `switch-back-when-focused(all_monitors)`
+
 ## 34 (2024-01-04)
 - fix: layered regex shortcut
 - center-mouse-to-focused-window: Don't move pointer if it's already in the window area

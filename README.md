@@ -174,6 +174,7 @@ Switch windows on the active workspace only
 Minimizes your target when unfocusing
 #### `switch-back-when-focused`
 Switch back to the previous window when focused. If a shortcut has no but a single window to cycle, it focuses last used window instead of doing nothing.
+To consider windows on all monitors (instead of only the current monitor), use `switch-back-when-focused(all_monitors)`.
 #### `move-window-to-active-workspace`
 Move window to current workspace before focusing. If the window is on a different workspace, moves the window to the workspace you're currently viewing.
 #### `center-mouse-to-focused-window`
