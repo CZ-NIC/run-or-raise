@@ -1,18 +1,18 @@
-# run simply with `make` to prepare a release
-UUID=run-or-raise@edvard.cz
+# Run "make" to compile the extension locally.
+# Run "make release" to bump the version number and push a tag.
+# Then GitHub Actions will publish to the extension store.
 
-release:
-	make compile
-	make build
-	xdg-open https://extensions.gnome.org/upload/
+UUID ?= run-or-raise@edvard.cz
+
+all: compile build
 
 compile:
 	glib-compile-schemas schemas
 
 build:
-	mkdir -p build
+	./pack.sh
 
-	# remove old build file so that we will not left deleted files from the last build
-	zip -r - * -x Makefile "build/*" > "build/$(UUID)".zip
+release:
+	./release.sh
 
-.PHONY: release compile build
+.PHONY: all compile build release
