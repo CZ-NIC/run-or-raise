@@ -10,9 +10,9 @@ compile:
 	glib-compile-schemas schemas
 
 build:
-	./pack.sh
+	./scripts/pack.sh
 
 release:
-	./release.sh
+	./scripts/release.sh
 
 .PHONY: all compile build release
