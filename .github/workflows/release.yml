@@ -1,0 +1,28 @@
+name: Publish to extensions.gnome.org
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package and Upload Extension
+        uses: murar8/gnome-extensions-action@0.1.0
+        with:
+          source-dir: .
+          username: ${{ secrets.GNOME_USERNAME }}
+          password: ${{ secrets.GNOME_PASSWORD }}
+          accept-tos: true
+          extra-source: |
+            convenience.js
+            lib
+            shortcuts.default
+            README.md
+            CHANGELOG.md
+            LICENSE
