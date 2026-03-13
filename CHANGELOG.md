@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## 42 (2026-03-11)
 - Add parameter for the `switch-back-when-focused` mode that will cause the extension to switch back to a window regardless of what monitor it is on: `switch-back-when-focused(all_monitors)`
 
 ## 34 (2024-01-04)

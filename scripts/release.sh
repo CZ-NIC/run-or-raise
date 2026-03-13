@@ -3,8 +3,8 @@
 set -euo pipefail
 
 status="$(git status --short)"
-if [[ -n "${status}" ]]; then
-    echo >&2 "Working tree is not clean, aborting release"
+if [[ -n "${status}" && "${1:-}" != "--commit" ]]; then
+    echo >&2 "Working tree is not clean, aborting release. Try \`make commit-and-release\` to commit it too."
     exit 1
 fi
 
@@ -15,6 +15,6 @@ mv metadata.json.tmp metadata.json
 
 set -x
 git add metadata.json
-git commit -m "Release v${ver}"
+git commit -m "build: release v${ver}"
 git tag "v${ver}"
-git push origin master "v${ver}"
+git push origin main "v${ver}"
