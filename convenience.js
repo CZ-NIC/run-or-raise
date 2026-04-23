@@ -24,26 +24,50 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-import GLib from 'gi://GLib';
+import GLib from "gi://GLib"
 
 export function getSchemaData(Settings) {
-    const schemaObj = Settings["settings_schema"]
-    const basicTypes = ["b", "y", "n", "q", "i", "u", "x", "t", "h", "d", "s", "o", "g", "?"].map(function(type){return {type: type, vt :  new GLib.VariantType(type)}});
-    const allKeys = schemaObj.list_keys().map(function(keyName) {
-	    const key = schemaObj.get_key(keyName);
-	    const keyType = key.get_value_type();
-	    const keyTypeFound = basicTypes.find(bt=>keyType.equal(bt.vt));
-	    if (!keyTypeFound) {return null;}
-	    const summary = key.get_summary();
-	    const description = key.get_description();
-	    const defaultValue = key.get_default_value().unpack();
-	    const value = Settings.get_value(keyName).unpack();
-	    return {name: keyName, summary: summary, description: description, defaultValue: defaultValue, value: value, type: keyTypeFound.type }
-
-    }).filter(a=>Boolean(a));
-    return {basicSchema: allKeys, settings: Settings};
+  const schemaObj = Settings["settings_schema"]
+  const basicTypes = [
+    "b",
+    "y",
+    "n",
+    "q",
+    "i",
+    "u",
+    "x",
+    "t",
+    "h",
+    "d",
+    "s",
+    "o",
+    "g",
+    "?",
+  ].map(function (type) {
+    return { type: type, vt: new GLib.VariantType(type) }
+  })
+  const allKeys = schemaObj
+    .list_keys()
+    .map(function (keyName) {
+      const key = schemaObj.get_key(keyName)
+      const keyType = key.get_value_type()
+      const keyTypeFound = basicTypes.find(bt => keyType.equal(bt.vt))
+      if (!keyTypeFound) {
+        return null
+      }
+      const summary = key.get_summary()
+      const description = key.get_description()
+      const defaultValue = key.get_default_value().unpack()
+      const value = Settings.get_value(keyName).unpack()
+      return {
+        name: keyName,
+        summary: summary,
+        description: description,
+        defaultValue: defaultValue,
+        value: value,
+        type: keyTypeFound.type,
+      }
+    })
+    .filter(a => Boolean(a))
+  return { basicSchema: allKeys, settings: Settings }
 }
-
-
-
-
