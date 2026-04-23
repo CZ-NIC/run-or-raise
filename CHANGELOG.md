@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## Unreleased
+- fix: remove `affectsInputRegion` parameter from `addChrome()`, unsupported in GNOME Shell 50+
+
 ## 42 (2026-03-11)
 - Add parameter for the `switch-back-when-focused` mode that will cause the extension to switch back to a window regardless of what monitor it is on: `switch-back-when-focused(all_monitors)`
 
