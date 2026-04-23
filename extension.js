@@ -255,7 +255,6 @@ class App {
             this.handler_layered.set_position(0, 0)
         }
         Main.layoutManager.addChrome(this.handler_layered, {
-            affectsInputRegion: true,
             trackFullscreen: true,
         })
         this.handler_layered.grab_key_focus()
