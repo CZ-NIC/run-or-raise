@@ -294,13 +294,16 @@ class App {
     // When listeren gets a key (which is not a modifier) this means
     // the user has written a key was not grabbed as a layered accelerator.
     // → Stop listening to layered accelerators.
-    this.handler_layered.connect_after("key-press-event", (_, event) =>
-      MODIFIERS.includes(event.get_key_symbol())
-        ? null
-        : this.layered_mode_stop(),
+    this.handler_layered_key_press = this.handler_layered.connect_after(
+      "key-press-event",
+      (_, event) =>
+        MODIFIERS.includes(event.get_key_symbol())
+          ? null
+          : this.layered_mode_stop(),
     )
-    this.handler_layered.connect("key-focus-out", () =>
-      this.layered_mode_stop(),
+    this.handler_layered_key_focus_out = this.handler_layered.connect(
+      "key-focus-out",
+      () => this.layered_mode_stop(),
     )
   }
 
@@ -320,6 +323,8 @@ class App {
     this.unblock_later.clear()
 
     if (this.handler_layered) {
+      this.handler_layered.disconnect(this.handler_layered_key_press)
+      this.handler_layered.disconnect(this.handler_layered_key_focus_out)
       this.handler_layered.destroy()
       this.handler_layered = null
     }
