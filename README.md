@@ -297,6 +297,8 @@ Note that GNOME Shell supports a _basic_ run-or-raise workflow out of the box! T
 
 Caveats: Limited to 9 apps; no wmclass, regex, layered shortcuts, or [modes](#modes) support. Limited to static `StartupWMClass` in XDG `.desktop` files.
 
+Also, on Wayland even GNOME's own keybindings (like this native alternative, or the system <kbd>Ctrl+Alt+T</kbd> terminal shortcut) commonly fail to focus the window they just opened or raised — you get a "window is ready" notification to click instead, because the spawned/raised window has no [activation token](https://discourse.gnome.org/t/cross-process-window-activation-on-wayland/20306) and Mutter's focus-stealing prevention denies it focus. `run-or-raise` works around this itself: it watches for the window it triggered and focuses it directly, regardless of token.
+
 ## Developer guide
 
 How to implement a new mode?
