@@ -90,6 +90,12 @@ class App {
      * @type {Set<Accelerator>}
      */
     this.unblock_later = new Set()
+
+    /**
+     * Actions still waiting for a launched window to focus.
+     * @type {Set<Action>}
+     */
+    this.watching_actions = new Set()
   }
 
   enable() {
@@ -231,6 +237,10 @@ class App {
     global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
     this.layered_mode_stop()
     this.keymap.disconnect(this.handler_state_changed) // stop listening to keyboard-locks changes
+    this.accelerators.forEach(actions =>
+      actions.forEach(action => action.destroy()),
+    )
+    this.watching_actions.forEach(action => action.destroy()) // e.g. layered or D-Bus actions not in accelerators
   }
 
   get_state() {
