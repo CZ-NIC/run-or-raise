@@ -307,10 +307,14 @@ How to implement a new mode?
 * create the same in [gschema.xml](schemas/org.gnome.shell.extensions.run-on-raise.gschema.xml) if the keyword should be available globally for all the shortcuts and run `make compile`
 * put the logics into `Action.trigger` method, by checking if the settings is on (either locally per shortcut or globally) by `this.mode.get(Mode.KEYWORD)`
   * you may need [gjs.guide](https://gjs.guide/extensions), [gnome-shell source](https://gitlab.gnome.org/GNOME/gnome-shell/-/tree/main/js/) or [gjs-docs.gnome.org](https://gjs-docs.gnome.org)
+* cover it with a test in [test/](test/) and run `make test`
 * document here in the [README.md](README.md)
 * put a description into [CHANGELOG.md](CHANGELOG.md) file
 * ~~raise a version in [metadata.json](metadata.json)~~
 * create a pull request with (preferably) a single commit
+
+### Tests
+`make test` (or `npm test`) runs the tests under [test/](test/) with the built-in Node.js test runner (Node 22+, no dependencies). The GNOME Shell imports (`gi://…`, `resource:///…`) resolve to the mocks in [test/mocks/](test/mocks/): a fake `global.display`, windows and a manually fired GLib main loop. That lets the tests check the extension logic, including that `disable()` leaves no signal handler or main loop source behind. Behaviour of the real Shell still needs a manual check (see below).
 
 ### Debugging
 When tired of logging out to refresh the code, launch a new wayland session ex by:

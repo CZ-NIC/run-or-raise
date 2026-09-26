@@ -1,0 +1,8 @@
+{
+  "name": "run-or-raise",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import ./test/mocks/loader.js --test 'test/*.test.js'"
+  }
+}

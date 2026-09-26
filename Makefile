@@ -13,10 +13,13 @@ compile:
 build:
 	./scripts/pack.sh
 
+test:
+	npm test
+
 release:
 	./scripts/release.sh
 
 commit-and-release:
 	./scripts/release.sh --commit
 
-.PHONY: all compile build release commit-and-release
+.PHONY: all compile build test release commit-and-release
