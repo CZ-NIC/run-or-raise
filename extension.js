@@ -234,9 +234,16 @@ class App {
 
   disable() {
     this.accelerators.forEach(actions => actions.disconnect()) // ungrab the accelerators
-    global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
+    // handlers are not set if enable() failed to read the shortcuts
+    if (this.handler_accelerator_activated) {
+      global.display.disconnect(this.handler_accelerator_activated) // stop listening to the accelerators, none left
+      this.handler_accelerator_activated = null
+    }
     this.layered_mode_stop()
-    this.keymap.disconnect(this.handler_state_changed) // stop listening to keyboard-locks changes
+    if (this.handler_state_changed) {
+      this.keymap.disconnect(this.handler_state_changed) // stop listening to keyboard-locks changes
+      this.handler_state_changed = null
+    }
     this.accelerators.forEach(actions =>
       actions.forEach(action => action.destroy()),
     )
