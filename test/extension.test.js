@@ -2,7 +2,7 @@
 import { test, beforeEach, afterEach } from "node:test"
 import assert from "node:assert/strict"
 import { reset, Window } from "./mocks/shell.js"
-import { GLib, Gio, Shell } from "./mocks/gi.js"
+import { Clutter, GLib, Gio, Shell } from "./mocks/gi.js"
 import * as Main from "./mocks/main.js"
 import RunOrRaiseExtension from "../extension.js"
 
@@ -161,6 +161,20 @@ test("missing config is read from the default", () => {
     ),
   )
   assert.deepEqual(grabbed(), ["<Super>f"])
+})
+
+test("enable on GNOME 51+ without Clutter.get_default_backend", () => {
+  const get_default_backend = Clutter.get_default_backend
+  const backend = get_default_backend()
+  delete Clutter.get_default_backend
+  global.stage = { context: { get_backend: () => backend } }
+  try {
+    ext.enable()
+    assert.deepEqual(grabbed(), ["<Super>f", "<Super>g", "<Super>t"])
+  } finally {
+    Clutter.get_default_backend = get_default_backend
+    delete global.stage
+  }
 })
 
 test("disable after enable failed to read any config", () => {

@@ -356,7 +356,11 @@ export default class RunOrRaiseExtension extends Extension {
   }
 
   enable() {
-    const seat = Clutter.get_default_backend().get_default_seat()
+    // GNOME 51 removed Clutter.get_default_backend()
+    const backend = Clutter.get_default_backend
+      ? Clutter.get_default_backend()
+      : global.stage.context.get_backend()
+    const seat = backend.get_default_seat()
     const keymap = seat.get_keymap()
     this.app = new App(this.getSettings(), seat, keymap)
     this.app.enable()
